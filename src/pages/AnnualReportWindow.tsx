@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Loader2, Download, Image, Check, X } from 'lucide-react'
+import { Loader2, Download, Image, Check, X, SlidersHorizontal } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import { useThemeStore } from '../stores/themeStore'
 import './AnnualReportWindow.scss'
@@ -249,6 +249,7 @@ function AnnualReportWindow() {
   const [fabOpen, setFabOpen] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [loadingStage, setLoadingStage] = useState('正在初始化...')
+  const [exportMode, setExportMode] = useState<'separate' | 'long'>('separate')
 
   const { currentTheme, themeMode } = useThemeStore()
 
@@ -490,7 +491,7 @@ function AnnualReportWindow() {
   }
 
   // 导出整个报告为长图
-  const exportFullReport = async () => {
+  const exportFullReport = async (filterIds?: Set<string>) => {
     if (!containerRef.current) {
       return
     }
@@ -515,6 +516,16 @@ function AnnualReportWindow() {
         el.style.minHeight = 'auto'
         el.style.padding = '40px 0'
       })
+
+      // 如果有筛选，隐藏未选中的板块
+      if (filterIds) {
+        const available = getAvailableSections()
+        available.forEach(s => {
+          if (!filterIds.has(s.id) && s.ref.current) {
+            s.ref.current.style.display = 'none'
+          }
+        })
+      }
 
       // 修复词云导出问题
       const wordCloudInner = container.querySelector('.word-cloud-inner') as HTMLElement
@@ -584,7 +595,7 @@ function AnnualReportWindow() {
 
       const dataUrl = outputCanvas.toDataURL('image/png')
       const link = document.createElement('a')
-      link.download = `${reportData?.year}年度报告.png`
+      link.download = `${reportData?.year}年度报告${filterIds ? '_自定义' : ''}.png`
       link.href = dataUrl
       document.body.appendChild(link)
       link.click()
@@ -604,6 +615,13 @@ function AnnualReportWindow() {
     const sections = getAvailableSections().filter(s => selectedSections.has(s.id))
     if (sections.length === 0) {
       alert('请至少选择一个板块')
+      return
+    }
+
+    if (exportMode === 'long') {
+      setShowExportModal(false)
+      await exportFullReport(selectedSections)
+      setSelectedSections(new Set())
       return
     }
 
@@ -735,8 +753,11 @@ function AnnualReportWindow() {
 
       {/* 浮动操作按钮 */}
       <div className={`fab-container ${fabOpen ? 'open' : ''}`}>
-        <button className="fab-item" onClick={() => { setFabOpen(false); setShowExportModal(true) }} title="分模块导出">
+        <button className="fab-item" onClick={() => { setFabOpen(false); setExportMode('separate'); setShowExportModal(true) }} title="分模块导出">
           <Image size={18} />
+        </button>
+        <button className="fab-item" onClick={() => { setFabOpen(false); setExportMode('long'); setShowExportModal(true) }} title="自定义导出长图">
+          <SlidersHorizontal size={18} />
         </button>
         <button className="fab-item" onClick={() => { setFabOpen(false); exportFullReport() }} title="导出长图">
           <Download size={18} />
@@ -765,7 +786,7 @@ function AnnualReportWindow() {
         <div className="export-overlay" onClick={() => setShowExportModal(false)}>
           <div className="export-modal section-selector" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>选择要导出的板块</h3>
+              <h3>{exportMode === 'long' ? '自定义导出长图' : '选择要导出的板块'}</h3>
               <button className="close-btn" onClick={() => setShowExportModal(false)}>
                 <X size={20} />
               </button>
@@ -793,7 +814,7 @@ function AnnualReportWindow() {
                 onClick={exportSelectedSections}
                 disabled={selectedSections.size === 0}
               >
-                导出 {selectedSections.size > 0 ? `(${selectedSections.size})` : ''}
+                {exportMode === 'long' ? '生成长图' : '导出'} {selectedSections.size > 0 ? `(${selectedSections.size})` : ''}
               </button>
             </div>
           </div>
@@ -838,7 +859,7 @@ function AnnualReportWindow() {
                 你发出 <span className="hl">{formatNumber(topFriend.sentCount)}</span> 条 ·
                 TA发来 <span className="hl">{formatNumber(topFriend.receivedCount)}</span> 条
               </p>
-              <br/>
+              <br />
               <p className="hero-desc">
                 在一起，就可以
               </p>
