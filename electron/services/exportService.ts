@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as http from 'http'
 import * as https from 'https'
 import { fileURLToPath } from 'url'
+import ExcelJS from 'exceljs'
 import { ConfigService } from './config'
 import { wcdbService } from './wcdbService'
 
@@ -895,6 +896,222 @@ class ExportService {
   }
 
   /**
+   * 导出单个会话为 Excel 格式（参考 echotrace 格式）
+   */
+  async exportSessionToExcel(
+    sessionId: string,
+    outputPath: string,
+    options: ExportOptions,
+    onProgress?: (progress: ExportProgress) => void
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const conn = await this.ensureConnected()
+      if (!conn.success || !conn.cleanedWxid) return { success: false, error: conn.error }
+
+      const cleanedMyWxid = conn.cleanedWxid
+      const isGroup = sessionId.includes('@chatroom')
+
+      const sessionInfo = await this.getContactInfo(sessionId)
+      const myInfo = await this.getContactInfo(cleanedMyWxid)
+
+      onProgress?.({
+        current: 0,
+        total: 100,
+        currentSession: sessionInfo.displayName,
+        phase: 'preparing'
+      })
+
+      const collected = await this.collectMessages(sessionId, cleanedMyWxid, options.dateRange)
+
+      onProgress?.({
+        current: 30,
+        total: 100,
+        currentSession: sessionInfo.displayName,
+        phase: 'exporting'
+      })
+
+      // 创建 Excel 工作簿
+      const workbook = new ExcelJS.Workbook()
+      workbook.creator = 'WeFlow'
+      workbook.created = new Date()
+
+      const worksheet = workbook.addWorksheet('聊天记录')
+
+      let currentRow = 1
+
+      // 第一行：会话信息标题
+      worksheet.mergeCells(currentRow, 1, currentRow, 8)
+      const titleCell = worksheet.getCell(currentRow, 1)
+      titleCell.value = '会话信息'
+      titleCell.font = { name: 'Calibri', bold: true, size: 11 }
+      titleCell.alignment = { vertical: 'middle', horizontal: 'left' }
+      worksheet.getRow(currentRow).height = 25
+      currentRow++
+
+      // 第二行：会话详细信息
+      worksheet.getCell(currentRow, 1).value = '微信ID'
+      worksheet.getCell(currentRow, 1).font = { name: 'Calibri', bold: true, size: 11 }
+      worksheet.mergeCells(currentRow, 2, currentRow, 3)
+      worksheet.getCell(currentRow, 2).value = sessionId
+      worksheet.getCell(currentRow, 2).font = { name: 'Calibri', size: 11 }
+      
+      worksheet.getCell(currentRow, 4).value = '昵称'
+      worksheet.getCell(currentRow, 4).font = { name: 'Calibri', bold: true, size: 11 }
+      worksheet.getCell(currentRow, 5).value = sessionInfo.displayName
+      worksheet.getCell(currentRow, 5).font = { name: 'Calibri', size: 11 }
+      
+      if (isGroup) {
+        worksheet.getCell(currentRow, 6).value = '备注'
+        worksheet.getCell(currentRow, 6).font = { name: 'Calibri', bold: true, size: 11 }
+        worksheet.mergeCells(currentRow, 7, currentRow, 8)
+        worksheet.getCell(currentRow, 7).value = '微信开发交流群'
+        worksheet.getCell(currentRow, 7).font = { name: 'Calibri', size: 11 }
+      }
+      worksheet.getRow(currentRow).height = 20
+      currentRow++
+
+      // 空行
+      worksheet.getRow(currentRow).height = 10
+      currentRow++
+
+      // 表头行
+      const headers = ['序号', '时间', '发送者昵称', '发送者微信ID', '发送者备注', '发送者身份', '消息类型', '内容']
+      const headerRow = worksheet.getRow(currentRow)
+      headerRow.height = 22
+      
+      headers.forEach((header, index) => {
+        const cell = headerRow.getCell(index + 1)
+        cell.value = header
+        cell.font = { name: 'Calibri', bold: true, size: 11 }
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE8F5E9' }
+        }
+        cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      })
+      currentRow++
+
+      // 设置列宽
+      worksheet.getColumn(1).width = 8   // 序号
+      worksheet.getColumn(2).width = 20  // 时间
+      worksheet.getColumn(3).width = 18  // 发送者昵称
+      worksheet.getColumn(4).width = 25  // 发送者微信ID
+      worksheet.getColumn(5).width = 18  // 发送者备注
+      worksheet.getColumn(6).width = 15  // 发送者身份
+      worksheet.getColumn(7).width = 12  // 消息类型
+      worksheet.getColumn(8).width = 50  // 内容
+
+      // 填充数据
+      const sortedMessages = collected.rows.sort((a, b) => a.createTime - b.createTime)
+      
+      for (let i = 0; i < sortedMessages.length; i++) {
+        const msg = sortedMessages[i]
+        
+        // 确定发送者信息
+        let senderRole: string
+        let senderWxid: string
+        let senderNickname: string
+        let senderRemark: string = ''
+        
+        if (msg.isSend) {
+          // 我发送的消息
+          senderRole = '我'
+          senderWxid = cleanedMyWxid
+          senderNickname = myInfo.displayName || cleanedMyWxid
+          senderRemark = ''
+        } else if (isGroup && msg.senderUsername) {
+          // 群消息
+          senderWxid = msg.senderUsername
+          
+          // 用 getContactInfo 获取正确的显示名（昵称）
+          const senderInfo = await this.getContactInfo(msg.senderUsername)
+          senderNickname = senderInfo.displayName || msg.senderUsername
+          
+          // 用 getContact 获取备注
+          const contactDetail = await wcdbService.getContact(msg.senderUsername)
+          if (contactDetail.success && contactDetail.contact && contactDetail.contact.remark) {
+            senderRemark = contactDetail.contact.remark
+            // 身份：有备注显示备注，没有显示昵称
+            senderRole = contactDetail.contact.remark
+          } else {
+            senderRemark = ''
+            senderRole = senderNickname
+          }
+        } else {
+          // 单聊对方消息
+          senderRole = sessionInfo.displayName || sessionId
+          senderWxid = sessionId
+          senderNickname = sessionInfo.displayName || sessionId
+          senderRemark = ''
+        }
+
+        const row = worksheet.getRow(currentRow)
+        row.height = 24
+        
+        worksheet.getCell(currentRow, 1).value = i + 1
+        worksheet.getCell(currentRow, 2).value = this.formatTimestamp(msg.createTime)
+        worksheet.getCell(currentRow, 3).value = senderNickname
+        worksheet.getCell(currentRow, 4).value = senderWxid
+        worksheet.getCell(currentRow, 5).value = senderRemark
+        worksheet.getCell(currentRow, 6).value = senderRole
+        worksheet.getCell(currentRow, 7).value = this.getMessageTypeName(msg.localType)
+        worksheet.getCell(currentRow, 8).value = this.parseMessageContent(msg.content, msg.localType) || ''
+        
+        // 设置每个单元格的样式
+        for (let col = 1; col <= 8; col++) {
+          const cell = worksheet.getCell(currentRow, col)
+          cell.font = { name: 'Calibri', size: 11 }
+          cell.alignment = { vertical: 'middle', wrapText: false }
+        }
+        
+        currentRow++
+
+        // 每处理 100 条消息报告一次进度
+        if ((i + 1) % 100 === 0) {
+          const progress = 30 + Math.floor((i + 1) / sortedMessages.length * 50)
+          onProgress?.({
+            current: progress,
+            total: 100,
+            currentSession: sessionInfo.displayName,
+            phase: 'exporting'
+          })
+        }
+      }
+
+      onProgress?.({
+        current: 90,
+        total: 100,
+        currentSession: sessionInfo.displayName,
+        phase: 'writing'
+      })
+
+      // 写入文件
+      await workbook.xlsx.writeFile(outputPath)
+
+      onProgress?.({
+        current: 100,
+        total: 100,
+        currentSession: sessionInfo.displayName,
+        phase: 'complete'
+      })
+
+      return { success: true }
+    } catch (e) {
+      console.error('ExportService: 导出 Excel 失败:', e)
+      
+      // 处理文件被占用的错误
+      if (e instanceof Error) {
+        if (e.message.includes('EBUSY') || e.message.includes('resource busy') || e.message.includes('locked')) {
+          return { success: false, error: '文件已经打开，请关闭后再导出' }
+        }
+      }
+      
+      return { success: false, error: String(e) }
+    }
+  }
+
+  /**
    * 批量导出多个会话
    */
   async exportSessions(
@@ -930,6 +1147,7 @@ class ExportService {
         const safeName = sessionInfo.displayName.replace(/[<>:"/\\|?*]/g, '_')
         let ext = '.json'
         if (options.format === 'chatlab-jsonl') ext = '.jsonl'
+        else if (options.format === 'excel') ext = '.xlsx'
         const outputPath = path.join(outputDir, `${safeName}${ext}`)
 
         let result: { success: boolean; error?: string }
@@ -937,6 +1155,8 @@ class ExportService {
           result = await this.exportSessionToDetailedJson(sessionId, outputPath, options)
         } else if (options.format === 'chatlab' || options.format === 'chatlab-jsonl') {
           result = await this.exportSessionToChatLab(sessionId, outputPath, options)
+        } else if (options.format === 'excel') {
+          result = await this.exportSessionToExcel(sessionId, outputPath, options)
         } else {
           result = { success: false, error: `不支持的格式: ${options.format}` }
         }

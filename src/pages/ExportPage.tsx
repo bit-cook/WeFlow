@@ -153,7 +153,7 @@ function ExportPage() {
         } : null
       }
 
-      if (options.format === 'chatlab' || options.format === 'chatlab-jsonl' || options.format === 'json') {
+      if (options.format === 'chatlab' || options.format === 'chatlab-jsonl' || options.format === 'json' || options.format === 'excel') {
         const result = await window.electronAPI.export.exportSessions(
           sessionList,
           exportFolder,
