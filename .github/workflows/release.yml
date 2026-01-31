@@ -21,8 +21,24 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.12
           cache: 'npm'
+
+      - name: Configure Windows SDK WinMD
+        shell: powershell
+        run: |
+          $sdkRoot = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\\10"
+          $unionRoot = Join-Path $sdkRoot "UnionMetadata"
+          $refsRoot = Join-Path $sdkRoot "References"
+          if (!(Test-Path $unionRoot)) { throw "UnionMetadata not found at $unionRoot" }
+          $winmdDir = Get-ChildItem $unionRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if (!$winmdDir) { throw "No UnionMetadata version directory found" }
+          $refsDir = Get-ChildItem $refsRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if (!$refsDir) { throw "No References version directory found" }
+          $libPath = "$($winmdDir.FullName);$($refsDir.FullName)"
+          "LIBPATH=$libPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "WindowsSdkDir=$sdkRoot\\" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "WindowsSdkVersion=$($winmdDir.Name)\\" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Install Dependencies
         run: npm ci
