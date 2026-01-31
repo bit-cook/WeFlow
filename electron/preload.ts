@@ -202,6 +202,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeAllListeners('annualReport:progress')
     }
   },
+  dualReport: {
+    generateReport: (payload: { friendUsername: string; year: number }) =>
+      ipcRenderer.invoke('dualReport:generateReport', payload),
+    onProgress: (callback: (payload: { status: string; progress: number }) => void) => {
+      ipcRenderer.on('dualReport:progress', (_, payload) => callback(payload))
+      return () => ipcRenderer.removeAllListeners('dualReport:progress')
+    }
+  },
 
   // 导出
   export: {

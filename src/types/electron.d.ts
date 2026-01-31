@@ -337,6 +337,55 @@ export interface ElectronAPI {
     }>
     onProgress: (callback: (payload: { status: string; progress: number }) => void) => () => void
   }
+  dualReport: {
+    generateReport: (payload: { friendUsername: string; year: number }) => Promise<{
+      success: boolean
+      data?: {
+        year: number
+        myName: string
+        friendUsername: string
+        friendName: string
+        firstChat: {
+          createTime: number
+          createTimeStr: string
+          content: string
+          isSentByMe: boolean
+          senderUsername?: string
+        } | null
+        thisYearFirstChat?: {
+          createTime: number
+          createTimeStr: string
+          content: string
+          isSentByMe: boolean
+          friendName: string
+          firstThreeMessages: Array<{
+            content: string
+            isSentByMe: boolean
+            createTime: number
+            createTimeStr: string
+          }>
+        } | null
+        yearlyStats: {
+          totalMessages: number
+          totalWords: number
+          imageCount: number
+          voiceCount: number
+          emojiCount: number
+          myTopEmojiMd5?: string
+          friendTopEmojiMd5?: string
+          myTopEmojiUrl?: string
+          friendTopEmojiUrl?: string
+        }
+        wordCloud: {
+          words: Array<{ phrase: string; count: number }>
+          totalWords: number
+          totalMessages: number
+        }
+      }
+      error?: string
+    }>
+    onProgress: (callback: (payload: { status: string; progress: number }) => void) => () => void
+  }
   export: {
     exportSessions: (sessionIds: string[], outputDir: string, options: ExportOptions) => Promise<{
       success: boolean

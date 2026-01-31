@@ -39,15 +39,22 @@ function AnnualReportPage() {
   }
 
   const handleGenerateReport = async () => {
-    if (!selectedYear || selectedYear === 'all') return
+    if (selectedYear === null) return
     setIsGenerating(true)
     try {
-      navigate(`/annual-report/view?year=${selectedYear}`)
+      const yearParam = selectedYear === 'all' ? 0 : selectedYear
+      navigate(`/annual-report/view?year=${yearParam}`)
     } catch (e) {
       console.error('生成报告失败:', e)
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const handleGenerateDualReport = () => {
+    if (selectedPairYear === null) return
+    const yearParam = selectedPairYear === 'all' ? 0 : selectedPairYear
+    navigate(`/dual-report?year=${yearParam}`)
   }
 
   if (isLoading) {
@@ -111,7 +118,7 @@ function AnnualReportPage() {
           <button
             className="generate-btn"
             onClick={handleGenerateReport}
-            disabled={!selectedYear || selectedYear === 'all' || isGenerating}
+            disabled={!selectedYear || isGenerating}
           >
             {isGenerating ? (
               <>
@@ -125,9 +132,6 @@ function AnnualReportPage() {
               </>
             )}
           </button>
-          {selectedYear === 'all' ? (
-            <p className="section-hint">全部时间报告功能准备中</p>
-          ) : null}
         </section>
 
         <section className="report-section">
@@ -155,11 +159,15 @@ function AnnualReportPage() {
             ))}
           </div>
 
-          <button className="generate-btn secondary" disabled>
+          <button
+            className="generate-btn secondary"
+            onClick={handleGenerateDualReport}
+            disabled={!selectedPairYear}
+          >
             <Users size={20} />
             <span>选择好友并生成报告</span>
           </button>
-          <p className="section-hint">双人年度报告入口已留出，功能在开发中</p>
+          <p className="section-hint">从聊天排行中选择好友生成双人报告</p>
         </section>
       </div>
     </div>

@@ -1029,6 +1029,73 @@ function registerIpcHandlers() {
     })
   })
 
+  ipcMain.handle('dualReport:generateReport', async (_, payload: { friendUsername: string; year: number }) => {
+    const cfg = configService || new ConfigService()
+    configService = cfg
+
+    const dbPath = cfg.get('dbPath')
+    const decryptKey = cfg.get('decryptKey')
+    const wxid = cfg.get('myWxid')
+    const logEnabled = cfg.get('logEnabled')
+    const friendUsername = payload?.friendUsername
+    const year = payload?.year ?? 0
+
+    if (!friendUsername) {
+      return { success: false, error: '缺少好友用户名' }
+    }
+
+    const resourcesPath = app.isPackaged
+      ? join(process.resourcesPath, 'resources')
+      : join(app.getAppPath(), 'resources')
+    const userDataPath = app.getPath('userData')
+
+    const workerPath = join(__dirname, 'dualReportWorker.js')
+
+    return await new Promise((resolve) => {
+      const worker = new Worker(workerPath, {
+        workerData: { year, friendUsername, dbPath, decryptKey, myWxid: wxid, resourcesPath, userDataPath, logEnabled }
+      })
+
+      const cleanup = () => {
+        worker.removeAllListeners()
+      }
+
+      worker.on('message', (msg: any) => {
+        if (msg && msg.type === 'dualReport:progress') {
+          for (const win of BrowserWindow.getAllWindows()) {
+            if (!win.isDestroyed()) {
+              win.webContents.send('dualReport:progress', msg.data)
+            }
+          }
+          return
+        }
+        if (msg && (msg.type === 'dualReport:result' || msg.type === 'done')) {
+          cleanup()
+          void worker.terminate()
+          resolve(msg.data ?? msg.result)
+          return
+        }
+        if (msg && (msg.type === 'dualReport:error' || msg.type === 'error')) {
+          cleanup()
+          void worker.terminate()
+          resolve({ success: false, error: msg.error || '双人报告生成失败' })
+        }
+      })
+
+      worker.on('error', (err) => {
+        cleanup()
+        resolve({ success: false, error: String(err) })
+      })
+
+      worker.on('exit', (code) => {
+        if (code !== 0) {
+          cleanup()
+          resolve({ success: false, error: `双人报告线程异常退出: ${code}` })
+        }
+      })
+    })
+  })
+
   ipcMain.handle('annualReport:exportImages', async (_, payload: { baseDir: string; folderName: string; images: Array<{ name: string; dataUrl: string }> }) => {
     try {
       const { baseDir, folderName, images } = payload
