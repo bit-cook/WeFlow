@@ -552,6 +552,11 @@ function registerIpcHandlers() {
     }
   })
 
+  ipcMain.handle('app:ignoreUpdate', async (_, version: string) => {
+    configService?.set('ignoredUpdateVersion', version)
+    return { success: true }
+  })
+
   // 窗口控制
   ipcMain.on('window:minimize', (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize()
@@ -1159,7 +1164,16 @@ function checkForUpdatesOnStartup() {
       if (result && result.updateInfo) {
         const currentVersion = app.getVersion()
         const latestVersion = result.updateInfo.version
+
+        // 检查是否有新版本
         if (latestVersion !== currentVersion && mainWindow) {
+          // 检查该版本是否被用户忽略
+          const ignoredVersion = configService?.get('ignoredUpdateVersion')
+          if (ignoredVersion === latestVersion) {
+            console.log(`版本 ${latestVersion} 已被用户忽略,跳过更新提示`)
+            return
+          }
+
           // 通知渲染进程有新版本
           mainWindow.webContents.send('app:updateAvailable', {
             version: latestVersion,

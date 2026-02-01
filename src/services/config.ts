@@ -35,7 +35,10 @@ export const CONFIG_KEYS = {
   // 安全
   AUTH_ENABLED: 'authEnabled',
   AUTH_PASSWORD: 'authPassword',
-  AUTH_USE_HELLO: 'authUseHello'
+  AUTH_USE_HELLO: 'authUseHello',
+
+  // 更新
+  IGNORED_UPDATE_VERSION: 'ignoredUpdateVersion'
 } as const
 
 export interface WxidConfig {
@@ -399,3 +402,17 @@ export async function getAuthUseHello(): Promise<boolean> {
 export async function setAuthUseHello(useHello: boolean): Promise<void> {
   await config.set(CONFIG_KEYS.AUTH_USE_HELLO, useHello)
 }
+
+// === 更新相关 ===
+
+// 获取被忽略的更新版本
+export async function getIgnoredUpdateVersion(): Promise<string | null> {
+  const value = await config.get(CONFIG_KEYS.IGNORED_UPDATE_VERSION)
+  return (value as string) || null
+}
+
+// 设置被忽略的更新版本
+export async function setIgnoredUpdateVersion(version: string): Promise<void> {
+  await config.set(CONFIG_KEYS.IGNORED_UPDATE_VERSION, version)
+}
+

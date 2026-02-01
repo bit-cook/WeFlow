@@ -12,6 +12,7 @@ interface UpdateDialogProps {
     updateInfo: UpdateInfo | null
     onClose: () => void
     onUpdate: () => void
+    onIgnore?: () => void
     isDownloading: boolean
     progress: number | {
         percent: number
@@ -27,6 +28,7 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
     updateInfo,
     onClose,
     onUpdate,
+    onIgnore,
     isDownloading,
     progress
 }) => {
@@ -118,6 +120,11 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
                         </div>
                     ) : (
                         <div className="actions">
+                            {onIgnore && (
+                                <button className="btn-ignore" onClick={onIgnore}>
+                                    忽略本次更新
+                                </button>
+                            )}
                             <button className="btn-update" onClick={onUpdate}>
                                 开启新旅程
                             </button>

@@ -33,6 +33,9 @@ interface ConfigSchema {
   authEnabled: boolean
   authPassword: string // SHA-256 hash
   authUseHello: boolean
+
+  // 更新相关
+  ignoredUpdateVersion: string
 }
 
 export class ConfigService {
@@ -67,7 +70,9 @@ export class ConfigService {
 
         authEnabled: false,
         authPassword: '',
-        authUseHello: false
+        authUseHello: false,
+
+        ignoredUpdateVersion: ''
       }
     })
   }

@@ -171,6 +171,29 @@
             .actions {
                 display: flex;
                 justify-content: center;
+                gap: 12px;
+
+                .btn-ignore {
+                    background: transparent;
+                    color: #666666;
+                    border: 1px solid #d0d0d0;
+                    padding: 16px 32px;
+                    border-radius: 20px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+
+                    &:hover {
+                        background: #f5f5f5;
+                        border-color: #999999;
+                        color: #333333;
+                    }
+
+                    &:active {
+                        transform: scale(0.98);
+                    }
+                }
 
                 .btn-update {
                     background: #000000;

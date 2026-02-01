@@ -316,6 +316,19 @@ function SettingsPage() {
     }
   }
 
+  const handleIgnoreUpdate = async () => {
+    if (!updateInfo || !updateInfo.version) return
+
+    try {
+      await window.electronAPI.app.ignoreUpdate(updateInfo.version)
+      setShowUpdateDialog(false)
+      setUpdateInfo(null)
+      showMessage(`已忽略版本 ${updateInfo.version}`, true)
+    } catch (e: any) {
+      showMessage(`操作失败: ${e}`, false)
+    }
+  }
+
 
 
   const showMessage = (text: string, success: boolean) => {

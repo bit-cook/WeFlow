@@ -203,6 +203,18 @@ function App() {
     }
   }
 
+  const handleIgnoreUpdate = async () => {
+    if (!updateInfo || !updateInfo.version) return
+
+    try {
+      await window.electronAPI.app.ignoreUpdate(updateInfo.version)
+      setShowUpdateDialog(false)
+      setUpdateInfo(null)
+    } catch (e: any) {
+      console.error('忽略更新失败:', e)
+    }
+  }
+
   const dismissUpdate = () => {
     setUpdateInfo(null)
   }
@@ -383,6 +395,7 @@ function App() {
         updateInfo={updateInfo}
         onClose={() => setShowUpdateDialog(false)}
         onUpdate={handleUpdateNow}
+        onIgnore={handleIgnoreUpdate}
         isDownloading={isDownloading}
         progress={downloadProgress}
       />
