@@ -164,6 +164,9 @@ function ChatPage(_props: ChatPageProps) {
   const [jumpStartTime, setJumpStartTime] = useState(0)
   const [jumpEndTime, setJumpEndTime] = useState(0)
   const [showJumpDialog, setShowJumpDialog] = useState(false)
+  const [messageDates, setMessageDates] = useState<Set<string>>(new Set())
+  const [loadingDates, setLoadingDates] = useState(false)
+  const messageDatesCache = useRef<Map<string, Set<string>>>(new Map())
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | undefined>(undefined)
   const [myWxid, setMyWxid] = useState<string | undefined>(undefined)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
@@ -680,12 +683,32 @@ function ChatPage(_props: ChatPageProps) {
 
 
 
+  // 动态游标批量大小控制
+  const currentBatchSizeRef = useRef(50)
+
   // 加载消息
   const loadMessages = async (sessionId: string, offset = 0, startTime = 0, endTime = 0) => {
     const listEl = messageListRef.current
     const session = sessionMapRef.current.get(sessionId)
     const unreadCount = session?.unreadCount ?? 0
-    const messageLimit = offset === 0 && unreadCount > 99 ? 30 : 50
+
+    let messageLimit = 50
+
+    if (offset === 0) {
+      // 初始加载：重置批量大小
+      currentBatchSizeRef.current = 50
+      // 首屏优化：消息过多时限制数量
+      messageLimit = unreadCount > 99 ? 30 : 50
+    } else {
+      // 滚动加载：动态递增 (50 -> 100 -> 200)
+      if (currentBatchSizeRef.current < 100) {
+        currentBatchSizeRef.current = 100
+      } else {
+        currentBatchSizeRef.current = 200
+      }
+      messageLimit = currentBatchSizeRef.current
+    }
+
 
     if (offset === 0) {
       setLoadingMessages(true)
@@ -1523,7 +1546,31 @@ function ChatPage(_props: ChatPageProps) {
                 </button>
                 <button
                   className="icon-btn jump-to-time-btn"
-                  onClick={() => setShowJumpDialog(true)}
+                  onClick={async () => {
+                    setShowJumpDialog(true)
+                    if (!currentSessionId) return
+                    // 检查缓存
+                    const cached = messageDatesCache.current.get(currentSessionId)
+                    if (cached) {
+                      setMessageDates(cached)
+                      return
+                    }
+                    // 获取消息日期
+                    setMessageDates(new Set()) // 清除旧数据
+                    setLoadingDates(true)
+                    try {
+                      const result = await (window as any).electronAPI.chat.getMessageDates(currentSessionId)
+                      if (result?.success && result.dates) {
+                        const dateSet = new Set<string>(result.dates)
+                        setMessageDates(dateSet)
+                        messageDatesCache.current.set(currentSessionId, dateSet)
+                      }
+                    } catch (e) {
+                      console.error('获取消息日期失败:', e)
+                    } finally {
+                      setLoadingDates(false)
+                    }
+                  }}
                   title="跳转到指定时间"
                 >
                   <Calendar size={18} />
@@ -1539,6 +1586,8 @@ function ChatPage(_props: ChatPageProps) {
                     setJumpEndTime(end)
                     loadMessages(currentSessionId, 0, 0, end)
                   }}
+                  messageDates={messageDates}
+                  loadingDates={loadingDates}
                 />
                 <button
                   className="icon-btn refresh-messages-btn"

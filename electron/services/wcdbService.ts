@@ -273,6 +273,10 @@ export class WcdbService {
     return this.callWorker('getMessageTableStats', { sessionId })
   }
 
+  async getMessageDates(sessionId: string): Promise<{ success: boolean; dates?: string[]; error?: string }> {
+    return this.callWorker('getMessageDates', { sessionId })
+  }
+
   /**
    * 获取消息元数据
    */

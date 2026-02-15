@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { X, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react'
 import './JumpToDateDialog.scss'
 
 interface JumpToDateDialogProps {
@@ -7,13 +7,19 @@ interface JumpToDateDialogProps {
     onClose: () => void
     onSelect: (date: Date) => void
     currentDate?: Date
+    /** 有消息的日期集合，格式为 YYYY-MM-DD */
+    messageDates?: Set<string>
+    /** 是否正在加载消息日期 */
+    loadingDates?: boolean
 }
 
 const JumpToDateDialog: React.FC<JumpToDateDialogProps> = ({
     isOpen,
     onClose,
     onSelect,
-    currentDate = new Date()
+    currentDate = new Date(),
+    messageDates,
+    loadingDates = false
 }) => {
     const isValidDate = (d: any) => d instanceof Date && !isNaN(d.getTime())
     const [calendarDate, setCalendarDate] = useState(isValidDate(currentDate) ? new Date(currentDate) : new Date())
@@ -49,7 +55,20 @@ const JumpToDateDialog: React.FC<JumpToDateDialogProps> = ({
         return days
     }
 
+    /**
+     * 判断某天是否有消息
+     */
+    const hasMessage = (day: number): boolean => {
+        if (!messageDates || messageDates.size === 0) return true // 未加载时默认全部可点击
+        const year = calendarDate.getFullYear()
+        const month = calendarDate.getMonth() + 1
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        return messageDates.has(dateStr)
+    }
+
     const handleDateClick = (day: number) => {
+        // 如果已加载日期数据且该日期无消息，则不可点击
+        if (messageDates && messageDates.size > 0 && !hasMessage(day)) return
         const newDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day)
         setSelectedDate(newDate)
     }
@@ -70,6 +89,28 @@ const JumpToDateDialog: React.FC<JumpToDateDialogProps> = ({
         return day === selectedDate.getDate() &&
             calendarDate.getMonth() === selectedDate.getMonth() &&
             calendarDate.getFullYear() === selectedDate.getFullYear()
+    }
+
+    /**
+     * 获取某天的 CSS 类名
+     */
+    const getDayClassName = (day: number | null): string => {
+        if (day === null) return 'day-cell empty'
+
+        const classes = ['day-cell']
+        if (isSelected(day)) classes.push('selected')
+        if (isToday(day)) classes.push('today')
+
+        // 仅在已加载消息日期数据时区分有/无消息
+        if (messageDates && messageDates.size > 0) {
+            if (hasMessage(day)) {
+                classes.push('has-message')
+            } else {
+                classes.push('no-message')
+            }
+        }
+
+        return classes.join(' ')
     }
 
     const weekdays = ['日', '一', '二', '三', '四', '五', '六']
@@ -107,18 +148,28 @@ const JumpToDateDialog: React.FC<JumpToDateDialogProps> = ({
                         </button>
                     </div>
 
-                    <div className="calendar-grid">
-                        <div className="weekdays">
+                    <div className={`calendar-grid ${loadingDates ? 'loading' : ''}`}>
+                        {loadingDates && (
+                            <div className="calendar-loading">
+                                <Loader2 size={20} className="spin" />
+                                <span>正在加载...</span>
+                            </div>
+                        )}
+                        <div className="weekdays" style={{ visibility: loadingDates ? 'hidden' : 'visible' }}>
                             {weekdays.map(d => <div key={d} className="weekday">{d}</div>)}
                         </div>
-                        <div className="days">
+                        <div className="days" style={{ visibility: loadingDates ? 'hidden' : 'visible' }}>
                             {days.map((day, i) => (
                                 <div
                                     key={i}
-                                    className={`day-cell ${day === null ? 'empty' : ''} ${day !== null && isSelected(day) ? 'selected' : ''} ${day !== null && isToday(day) ? 'today' : ''}`}
+                                    className={getDayClassName(day)}
+                                    style={{ visibility: loadingDates ? 'hidden' : 'visible' }}
                                     onClick={() => day !== null && handleDateClick(day)}
                                 >
                                     {day}
+                                    {day !== null && messageDates && messageDates.size > 0 && hasMessage(day) && (
+                                        <span className="message-dot" />
+                                    )}
                                 </div>
                             ))}
                         </div>

@@ -46,6 +46,7 @@ export class WcdbCore {
   private wcdbGetAnnualReportExtras: any = null
   private wcdbGetDualReportStats: any = null
   private wcdbGetGroupStats: any = null
+  private wcdbGetMessageDates: any = null
   private wcdbOpenMessageCursor: any = null
   private wcdbOpenMessageCursorLite: any = null
   private wcdbFetchMessageBatch: any = null
@@ -299,9 +300,6 @@ export class WcdbCore {
         return false
       }
 
-      // 关键修复：显式预加载依赖库 WCDB.dll 和 SDL2.dll
-      // Windows 加载器默认不会查找子目录中的依赖，必须先将其加载到内存
-      // 这可以解决部分用户因为 VC++ 运行时或 DLL 依赖问题导致的闪退
       const dllDir = dirname(dllPath)
       const wcdbCorePath = join(dllDir, 'WCDB.dll')
       if (existsSync(wcdbCorePath)) {
@@ -476,6 +474,13 @@ export class WcdbCore {
         this.wcdbGetGroupStats = this.lib.func('int32 wcdb_get_group_stats(int64 handle, const char* chatroomId, int32 begin, int32 end, _Out_ void** outJson)')
       } catch {
         this.wcdbGetGroupStats = null
+      }
+
+      // wcdb_status wcdb_get_message_dates(wcdb_handle handle, const char* session_id, char** out_json)
+      try {
+        this.wcdbGetMessageDates = this.lib.func('int32 wcdb_get_message_dates(int64 handle, const char* sessionId, _Out_ void** outJson)')
+      } catch {
+        this.wcdbGetMessageDates = null
       }
 
       // wcdb_status wcdb_open_message_cursor(wcdb_handle handle, const char* session_id, int32_t batch_size, int32_t ascending, int32_t begin_timestamp, int32_t end_timestamp, wcdb_cursor* out_cursor)
@@ -1189,6 +1194,29 @@ export class WcdbCore {
       if (!jsonStr) return { success: false, error: '解析消息表失败' }
       const tables = JSON.parse(jsonStr)
       return { success: true, tables }
+    } catch (e) {
+      return { success: false, error: String(e) }
+    }
+  }
+
+  async getMessageDates(sessionId: string): Promise<{ success: boolean; dates?: string[]; error?: string }> {
+    if (!this.ensureReady()) {
+      return { success: false, error: 'WCDB 未连接' }
+    }
+    try {
+      if (!this.wcdbGetMessageDates) {
+        return { success: false, error: 'DLL 不支持 getMessageDates' }
+      }
+      const outPtr = [null as any]
+      const result = this.wcdbGetMessageDates(this.handle, sessionId, outPtr)
+      if (result !== 0 || !outPtr[0]) {
+        // 空结果也可能是正常的（无消息）
+        return { success: true, dates: [] }
+      }
+      const jsonStr = this.decodeJsonPtr(outPtr[0])
+      if (!jsonStr) return { success: false, error: '解析日期列表失败' }
+      const dates = JSON.parse(jsonStr)
+      return { success: true, dates }
     } catch (e) {
       return { success: false, error: String(e) }
     }

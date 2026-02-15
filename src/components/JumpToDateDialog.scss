@@ -100,6 +100,33 @@
 }
 
 .calendar-grid {
+    position: relative;
+
+    &.loading {
+
+        .weekdays,
+        .days {
+            pointer-events: none;
+        }
+    }
+
+    .calendar-loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        font-size: 13px;
+
+        .spin {
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+    }
+
     .weekdays {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
@@ -129,12 +156,13 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
 
             &.empty {
                 cursor: default;
             }
 
-            &:not(.empty):hover {
+            &:not(.empty):not(.no-message):hover {
                 background: var(--bg-hover);
             }
 
@@ -149,7 +177,40 @@
                 font-weight: 600;
                 background: var(--primary-light);
             }
+
+            // 无消息的日期 - 灰显且不可点击
+            &.no-message {
+                opacity: 0.3;
+                cursor: default;
+                pointer-events: none;
+            }
+
+            // 有消息的日期指示器小圆点
+            .message-dot {
+                position: absolute;
+                bottom: 3px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 4px;
+                height: 4px;
+                border-radius: 50%;
+                background: var(--primary);
+            }
+
+            &.selected .message-dot {
+                background: rgba(255, 255, 255, 0.7);
+            }
         }
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
     }
 }
 

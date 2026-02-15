@@ -72,6 +72,9 @@ export interface Message {
   // 名片消息
   cardUsername?: string     // 名片的微信ID
   cardNickname?: string     // 名片的昵称
+  // 转账消息
+  transferPayerUsername?: string   // 转账付款人
+  transferReceiverUsername?: string // 转账收款人
   // 聊天记录
   chatRecordTitle?: string  // 聊天记录标题
   chatRecordList?: Array<{
@@ -723,7 +726,7 @@ class ChatService {
       // 1. 没有游标状态
       // 2. offset 为 0 (重新加载会话)
       // 3. batchSize 改变
-      // 4. startTime 改变
+      // 4. startTime/endTime 改变（视为全新查询）
       // 5. ascending 改变
       const needNewCursor = !state ||
         offset === 0 ||
@@ -756,27 +759,35 @@ class ChatService {
         this.messageCursors.set(sessionId, state)
 
         // 如果需要跳过消息(offset > 0),逐批获取但不返回
+        // 注意：仅在 offset === 0 时重建游标最安全；
+        // 当 startTime/endTime 变化导致重建时，offset 应由前端重置为 0
         if (offset > 0) {
-
+          console.warn(`[ChatService] 新游标需跳过 ${offset} 条消息（startTime=${startTime}, endTime=${endTime}）`)
           let skipped = 0
-          while (skipped < offset) {
+          const maxSkipAttempts = Math.ceil(offset / batchSize) + 5 // 防止无限循环
+          let attempts = 0
+          while (skipped < offset && attempts < maxSkipAttempts) {
+            attempts++
             const skipBatch = await wcdbService.fetchMessageBatch(state.cursor)
             if (!skipBatch.success) {
               console.error('[ChatService] 跳过消息批次失败:', skipBatch.error)
               return { success: false, error: skipBatch.error || '跳过消息失败' }
             }
             if (!skipBatch.rows || skipBatch.rows.length === 0) {
-
+              console.warn(`[ChatService] 跳过时数据耗尽: skipped=${skipped}/${offset}`)
               return { success: true, messages: [], hasMore: false }
             }
             skipped += skipBatch.rows.length
             state.fetched += skipBatch.rows.length
             if (!skipBatch.hasMore) {
-
+              console.warn(`[ChatService] 跳过后无更多数据: skipped=${skipped}/${offset}`)
               return { success: true, messages: [], hasMore: false }
             }
           }
-
+          if (attempts >= maxSkipAttempts) {
+            console.error(`[ChatService] 跳过消息超过最大尝试次数: attempts=${attempts}`)
+          }
+          console.log(`[ChatService] 跳过完成: skipped=${skipped}, fetched=${state.fetched}`)
         }
       } else if (state && offset !== state.fetched) {
         // offset 与 fetched 不匹配,说明状态不一致
@@ -3772,6 +3783,32 @@ class ChatService {
       return { success: true, messages: allVoiceMessages }
     } catch (e) {
       console.error('[ChatService] 获取所有语音消息失败:', e)
+      return { success: false, error: String(e) }
+    }
+  }
+
+  /**
+   * 获取某会话中有消息的日期列表
+   * 返回 YYYY-MM-DD 格式的日期字符串数组
+   */
+  async getMessageDates(sessionId: string): Promise<{ success: boolean; dates?: string[]; error?: string }> {
+    try {
+      const connectResult = await this.ensureConnected()
+      if (!connectResult.success) {
+        return { success: false, error: connectResult.error || '数据库未连接' }
+      }
+
+      const result = await wcdbService.getMessageDates(sessionId)
+      if (!result.success) {
+        throw new Error(result.error || '查询失败')
+      }
+
+      const dates = result.dates || []
+
+      console.log(`[ChatService] 会话 ${sessionId} 共有 ${dates.length} 个有消息的日期`)
+      return { success: true, dates }
+    } catch (e) {
+      console.error('[ChatService] 获取消息日期失败:', e)
       return { success: false, error: String(e) }
     }
   }

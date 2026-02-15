@@ -78,6 +78,9 @@ if (parentPort) {
                 case 'getMessageTableStats':
                     result = await core.getMessageTableStats(payload.sessionId)
                     break
+                case 'getMessageDates':
+                    result = await core.getMessageDates(payload.sessionId)
+                    break
                 case 'getMessageMeta':
                     result = await core.getMessageMeta(payload.dbPath, payload.tableName, payload.limit, payload.offset)
                     break
