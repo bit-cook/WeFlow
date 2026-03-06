@@ -1161,6 +1161,7 @@
   --contacts-default-visible-rows: 10;
   --contacts-default-list-height: calc(var(--contacts-row-height) * var(--contacts-default-visible-rows));
   --contacts-select-col-width: 34px;
+  --contacts-inline-padding: 12px;
   --contacts-message-col-width: 120px;
   --contacts-media-col-width: 72px;
   --contacts-action-col-width: 140px;
@@ -1294,7 +1295,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px 8px;
+    padding: 10px var(--contacts-inline-padding) 8px;
     border-bottom: 1px solid color-mix(in srgb, var(--border-color) 85%, transparent);
     background: color-mix(in srgb, var(--bg-primary) 78%, var(--bg-secondary));
     font-size: 12px;
@@ -1379,7 +1380,7 @@
     min-height: var(--contacts-default-list-height);
     height: var(--contacts-default-list-height);
     overflow: hidden;
-    padding: 0 12px 12px;
+    padding: 0 0 12px;
   }
 
   .contacts-virtuoso {
@@ -1459,13 +1460,17 @@
     &.selected .contact-item {
       background: rgba(var(--primary-rgb), 0.08);
     }
+
+    &.selected .row-action-cell {
+      background: rgba(var(--primary-rgb), 0.08);
+    }
   }
 
   .contact-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px;
+    padding: 12px var(--contacts-inline-padding);
     height: 72px;
     box-sizing: border-box;
     border-radius: 10px;
@@ -3330,6 +3335,7 @@
   }
 
   .table-wrap {
+    --contacts-inline-padding: 10px;
     --contacts-message-col-width: 104px;
     --contacts-media-col-width: 62px;
     --contacts-action-col-width: 140px;
@@ -3337,7 +3343,7 @@
 
   .table-wrap .contacts-list-header {
     gap: 8px;
-    padding: 8px 10px 6px;
+    padding: 8px var(--contacts-inline-padding) 6px;
   }
 
   .table-wrap .contacts-list-header-main {
@@ -3349,7 +3355,7 @@
   }
 
   .table-wrap .contacts-list {
-    padding: 0 10px 10px;
+    padding: 0 0 10px;
     min-height: 300px;
     height: min(56vh, 560px);
   }
