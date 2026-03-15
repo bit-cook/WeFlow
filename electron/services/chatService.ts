@@ -5639,6 +5639,12 @@ class ChatService {
       }
 
       // 3. 读取解密后的文件并转成 base64
+      // 如果已经是 data URL，直接返回 base64 部分
+      if (result.localPath.startsWith('data:')) {
+        const base64Data = result.localPath.split(',')[1]
+        return { success: true, data: base64Data }
+      }
+
       // localPath 是 file:// URL，需要转换成文件路径
       const filePath = result.localPath.startsWith('file://')
         ? result.localPath.replace(/^file:\/\//, '')
