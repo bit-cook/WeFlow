@@ -96,7 +96,7 @@
       "gatekeeperAssess": false,
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.plist",
-      "icon": "resources/icon.icns"
+      "icon": "resources/icons/macos/icon.icns"
     },
     "win": {
       "target": [
@@ -105,19 +105,19 @@
       "icon": "public/icon.ico",
       "extraFiles": [
         {
-          "from": "resources/msvcp140.dll",
+          "from": "resources/runtime/win32/msvcp140.dll",
           "to": "."
         },
         {
-          "from": "resources/msvcp140_1.dll",
+          "from": "resources/runtime/win32/msvcp140_1.dll",
           "to": "."
         },
         {
-          "from": "resources/vcruntime140.dll",
+          "from": "resources/runtime/win32/vcruntime140.dll",
           "to": "."
         },
         {
-          "from": "resources/vcruntime140_1.dll",
+          "from": "resources/runtime/win32/vcruntime140_1.dll",
           "to": "."
         }
       ]
@@ -133,7 +133,7 @@
       "synopsis": "WeFlow for Linux",
       "extraFiles": [
         {
-          "from": "resources/linux/install.sh",
+          "from": "resources/installer/linux/install.sh",
           "to": "install.sh"
         }
       ]
@@ -189,7 +189,7 @@
       "node_modules/ffmpeg-static/**/*",
       "resources/wedecrypt/**/*.node"
     ],
-    "icon": "resources/icon.icns"
+    "icon": "resources/icons/macos/icon.icns"
   },
   "overrides": {
     "picomatch": "^4.0.4",
