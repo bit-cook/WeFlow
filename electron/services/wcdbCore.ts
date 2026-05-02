@@ -1260,13 +1260,12 @@ export class WcdbCore {
   /**
    * 测试数据库连接
    */
-  async testConnection(dbPath: string, hexKey: string, wxid: string): Promise<{ success: boolean; error?: string; sessionCount?: number }> {
+  async testConnection(accountDir: string, hexKey: string): Promise<{ success: boolean; error?: string; sessionCount?: number }> {
     try {
       // 如果当前已经有相同参数的活动连接，直接返回成功
       if (this.handle !== null &&
-        this.currentPath === dbPath &&
-        this.currentKey === hexKey &&
-        this.currentWxid === wxid) {
+        this.currentPath === accountDir &&
+        this.currentKey === hexKey) {
         return { success: true, sessionCount: 0 }
       }
 
@@ -1284,9 +1283,9 @@ export class WcdbCore {
         }
       }
 
-      // 构建 db_storage 目录路径
-      const dbStoragePath = this.resolveDbStoragePath(dbPath, wxid)
-      this.writeLog(`testConnection dbPath=${dbPath} wxid=${wxid} dbStorage=${dbStoragePath || 'null'}`)
+      // 直接使用账号目录
+      const dbStoragePath = join(accountDir, 'db_storage')
+      this.writeLog(`testConnection accountDir=${accountDir} dbStorage=${dbStoragePath}`)
 
       if (!dbStoragePath || !existsSync(dbStoragePath)) {
         return { success: false, error: this.formatInitProtectionError(-3001) }
@@ -1329,9 +1328,9 @@ export class WcdbCore {
       }
 
       // 恢复测试前的连接（如果之前有活动连接）
-      if (hadActiveConnection && prevPath && prevKey && prevWxid) {
+      if (hadActiveConnection && prevPath && prevKey) {
         try {
-          await this.open(prevPath, prevKey, prevWxid)
+          await this.open(prevPath, prevKey)
         } catch {
           // 恢复失败则保持断开，由调用方处理
         }
@@ -1536,7 +1535,7 @@ export class WcdbCore {
   /**
    * 打开数据库
    */
-  async open(dbPath: string, hexKey: string, wxid: string): Promise<boolean> {
+  async open(accountDir: string, hexKey: string): Promise<boolean> {
     try {
       lastDllInitError = null
       if (!this.initialized) {
@@ -1546,9 +1545,8 @@ export class WcdbCore {
 
       // 检查是否已经是当前连接的参数，如果是则直接返回成功，实现"始终保持链接"
       if (this.handle !== null &&
-        this.currentPath === dbPath &&
-        this.currentKey === hexKey &&
-        this.currentWxid === wxid) {
+        this.currentPath === accountDir &&
+        this.currentKey === hexKey) {
         return true
       }
 
@@ -1560,12 +1558,12 @@ export class WcdbCore {
         if (!initOk) return false
       }
 
-      const dbStoragePath = this.resolveDbStoragePath(dbPath, wxid)
-      this.writeLog(`open dbPath=${dbPath} wxid=${wxid} dbStorage=${dbStoragePath || 'null'}`, true)
+      const dbStoragePath = join(accountDir, 'db_storage')
+      this.writeLog(`open accountDir=${accountDir} dbStorage=${dbStoragePath}`, true)
 
       if (!dbStoragePath || !existsSync(dbStoragePath)) {
-        console.error('数据库目录不存在:', dbPath)
-        this.writeLog(`open failed: dbStorage not found for ${dbPath}`)
+        console.error('数据库目录不存在:', accountDir)
+        this.writeLog(`open failed: dbStorage not found for ${accountDir}`)
         lastDllInitError = this.formatInitProtectionError(-3001)
         return false
       }
@@ -1596,8 +1594,11 @@ export class WcdbCore {
         return false
       }
 
+      // 从账号目录路径中提取 wxid（目录名）
+      const wxid = basename(accountDir)
+
       this.handle = handle
-      this.currentPath = dbPath
+      this.currentPath = accountDir
       this.currentKey = hexKey
       this.currentWxid = wxid
       this.currentDbStoragePath = dbStoragePath
@@ -1615,7 +1616,7 @@ export class WcdbCore {
       }
       this.writeLog(`open ok handle=${handle}`, true)
       await this.dumpDbStatus('open')
-      await this.runPostOpenDiagnostics(dbPath, dbStoragePath, sessionDbPath, wxid)
+      await this.runPostOpenDiagnostics(accountDir, dbStoragePath, sessionDbPath, wxid)
       return true
     } catch (e) {
       console.error('打开数据库异常:', e)

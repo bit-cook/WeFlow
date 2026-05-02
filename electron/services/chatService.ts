@@ -553,8 +553,13 @@ class ChatService {
         return { success: false, error: '请先在设置页面配置解密密钥' }
       }
 
-      const cleanedWxid = this.cleanAccountDirName(wxid)
-      const openOk = await wcdbService.open(dbPath, decryptKey, cleanedWxid)
+      // 使用 ConfigService 统一解析账号目录
+      const accountDir = this.configService.getAccountDir(dbPath, wxid)
+      if (!accountDir) {
+        return { success: false, error: '未找到账号目录，请检查数据库路径和微信ID配置' }
+      }
+
+      const openOk = await wcdbService.open(accountDir, decryptKey)
       if (!openOk) {
         const detailedError = this.toCodeOnlyMessage(await wcdbService.getLastInitError())
         await this.maybeShowInitFailureDialog(detailedError)

@@ -32,10 +32,10 @@ if (parentPort) {
                     break
                     }
                 case 'testConnection':
-                    result = await core.testConnection(payload.dbPath, payload.hexKey, payload.wxid)
+                    result = await core.testConnection(payload.accountDir, payload.hexKey)
                     break
                 case 'open':
-                    result = await core.open(payload.dbPath, payload.hexKey, payload.wxid)
+                    result = await core.open(payload.accountDir, payload.hexKey)
                     break
                 case 'getLastInitError':
                     result = core.getLastInitError()

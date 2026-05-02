@@ -8370,6 +8370,8 @@ function MessageBubble({
 
   // State variables...
   const [imageError, setImageError] = useState(false)
+  const [imageErrorReason, setImageErrorReason] = useState<string | undefined>(undefined)
+  const [imageFailureKind, setImageFailureKind] = useState<'not_found' | 'decrypt_failed' | undefined>(undefined)
   const [imageLoading, setImageLoading] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageStageLockHeight, setImageStageLockHeight] = useState<number | null>(null)
@@ -8757,7 +8759,11 @@ function MessageBubble({
         if (result.success && result.localPath) {
           const renderPath = toRenderableImageSrc(result.localPath)
           if (!renderPath) {
-            if (!silent) setImageError(true)
+            if (!silent) {
+              setImageError(true)
+              setImageErrorReason('路径无效')
+              setImageFailureKind('decrypt_failed')
+            }
             return { success: false }
           }
           imageDataUrlCache.set(imageCacheKey, renderPath)
@@ -8769,6 +8775,10 @@ function MessageBubble({
           setImageHasUpdate(false)
           if (result.liveVideoPath) setImageLiveVideoPath(result.liveVideoPath)
           return { ...result, localPath: renderPath }
+        } else if (!silent && result.error) {
+          setImageError(true)
+          setImageErrorReason(result.error)
+          setImageFailureKind(result.failureKind)
         }
       }
 
@@ -8785,9 +8795,17 @@ function MessageBubble({
         setImageHasUpdate(false)
         return { success: true, localPath: dataUrl }
       }
-      if (!silent) setImageError(true)
-    } catch {
-      if (!silent) setImageError(true)
+      if (!silent) {
+        setImageError(true)
+        setImageErrorReason('图片数据获取失败')
+        setImageFailureKind('not_found')
+      }
+    } catch (e) {
+      if (!silent) {
+        setImageError(true)
+        setImageErrorReason(e instanceof Error ? e.message : '解密异常')
+        setImageFailureKind('decrypt_failed')
+      }
     } finally {
       if (!silent) setImageLoading(false)
       imageDecryptPendingRef.current = false
@@ -9636,14 +9654,15 @@ function MessageBubble({
             </div>
           ) : imageError || !imageLocalPath ? (
             <button
-              className={`image-unavailable ${imageClicked ? 'clicked' : ''}`}
+              className={`image-unavailable ${imageClicked ? 'clicked' : ''} ${imageError ? 'error' : ''}`}
               onClick={handleImageClick}
               disabled={imageLoading}
               type="button"
             >
               <ImageIcon size={24} />
-              <span>图片未解密</span>
-              <span className="image-action">{imageClicked ? '已点击…' : '点击解密'}</span>
+              <span>{imageError ? '解密失败' : '图片未解密'}</span>
+              {imageErrorReason && <span className="image-error-reason">{imageErrorReason}</span>}
+              <span className="image-action">{imageClicked ? '已点击…' : '点击重试'}</span>
             </button>
           ) : (
             <>
@@ -9659,6 +9678,8 @@ function MessageBubble({
                   onLoad={() => {
                     setImageLoaded(true)
                     setImageError(false)
+                    setImageErrorReason(undefined)
+                    setImageFailureKind(undefined)
                     stabilizeImageScrollAfterResize()
                     releaseImageStageLock()
                   }}

@@ -1,4 +1,5 @@
 ﻿import { join } from 'path'
+import { existsSync, readdirSync, statSync } from 'fs'
 import { app, safeStorage } from 'electron'
 import crypto from 'crypto'
 import Store from 'electron-store'
@@ -144,6 +145,9 @@ export class ConfigService {
   // 锁定模式运行时状态
   private unlockedKeys: Map<string, any> = new Map()
   private unlockPassword: string | null = null
+
+  // 账号目录缓存
+  private accountDirCache: Map<string, string> = new Map()
 
   static getInstance(): ConfigService {
     if (!ConfigService.instance) {
@@ -837,6 +841,99 @@ export class ConfigService {
       xorKey: this.get('imageXorKey'),
       aesKey: this.get('imageAesKey')
     }
+  }
+
+  /**
+   * 清理账号目录名称（移除后缀）
+   */
+  private cleanAccountDirName(dirName: string): string {
+    const trimmed = dirName.trim()
+    if (!trimmed) return trimmed
+
+    // wxid_ 开头的特殊处理
+    if (trimmed.toLowerCase().startsWith('wxid_')) {
+      const match = trimmed.match(/^(wxid_[^_]+)/i)
+      if (match) return match[1]
+      return trimmed
+    }
+
+    // 移除4位后缀
+    const suffixMatch = trimmed.match(/^(.+)_([a-zA-Z0-9]{4})$/)
+    if (suffixMatch) return suffixMatch[1]
+
+    return trimmed
+  }
+
+  /**
+   * 检查是否是目录
+   */
+  private isDirectory(path: string): boolean {
+    try {
+      return statSync(path).isDirectory()
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * 获取账号目录路径
+   * 统一的账号目录解析方法，所有服务应该使用此方法而不是自己实现
+   *
+   * @param dbPath 数据库根目录（可选，默认从配置读取）
+   * @param wxid 微信ID（可选，默认从配置读取）
+   * @returns 账号目录的完整路径，如果找不到返回 null
+   */
+  getAccountDir(dbPath?: string, wxid?: string): string | null {
+    const actualDbPath = dbPath || this.get('dbPath')
+    const actualWxid = wxid || this.get('myWxid')
+
+    if (!actualDbPath || !actualWxid) return null
+
+    const cleanedWxid = this.cleanAccountDirName(actualWxid)
+    const normalized = actualDbPath.replace(/[\\/]+$/, '')
+    const cacheKey = `${normalized}|${cleanedWxid.toLowerCase()}`
+
+    // 检查缓存
+    const cached = this.accountDirCache.get(cacheKey)
+    if (cached && existsSync(cached)) return cached
+    if (cached && !existsSync(cached)) {
+      this.accountDirCache.delete(cacheKey)
+    }
+
+    // 尝试直接路径（非 wxid_ 开头的账号）
+    const lowerWxid = cleanedWxid.toLowerCase()
+    if (!lowerWxid.startsWith('wxid_')) {
+      const direct = join(normalized, cleanedWxid)
+      if (existsSync(direct) && this.isDirectory(direct)) {
+        this.accountDirCache.set(cacheKey, direct)
+        return direct
+      }
+    }
+
+    // 扫描目录查找匹配的账号目录
+    try {
+      const entries = readdirSync(normalized)
+      for (const entry of entries) {
+        const entryPath = join(normalized, entry)
+        if (!this.isDirectory(entryPath)) continue
+
+        const lowerEntry = entry.toLowerCase()
+        const isExactMatch = lowerEntry === lowerWxid
+        const isSuffixMatch = lowerEntry.startsWith(`${lowerWxid}_`)
+
+        // wxid_ 开头只接受带后缀的目录；其他账号精确匹配或带后缀都可以
+        const shouldMatch = lowerWxid.startsWith('wxid_')
+          ? isSuffixMatch
+          : (isExactMatch || isSuffixMatch)
+
+        if (shouldMatch) {
+          this.accountDirCache.set(cacheKey, entryPath)
+          return entryPath
+        }
+      }
+    } catch { }
+
+    return null
   }
 
   private getUserDataPath(): string {

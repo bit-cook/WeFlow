@@ -2208,11 +2208,21 @@ function registerIpcHandlers() {
 
   // WCDB 数据库相关
   ipcMain.handle('wcdb:testConnection', async (_, dbPath: string, hexKey: string, wxid: string) => {
-    return wcdbService.testConnection(dbPath, hexKey, wxid)
+    const cfg = configService || new ConfigService()
+    const accountDir = cfg.getAccountDir(dbPath, wxid)
+    if (!accountDir) {
+      return { success: false, error: '未找到账号目录' }
+    }
+    return wcdbService.testConnection(accountDir, hexKey)
   })
 
   ipcMain.handle('wcdb:open', async (_, dbPath: string, hexKey: string, wxid: string) => {
-    return wcdbService.open(dbPath, hexKey, wxid)
+    const cfg = configService || new ConfigService()
+    const accountDir = cfg.getAccountDir(dbPath, wxid)
+    if (!accountDir) {
+      return false
+    }
+    return wcdbService.open(accountDir, hexKey)
   })
 
   ipcMain.handle('wcdb:close', async () => {
