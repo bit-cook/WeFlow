@@ -30,7 +30,7 @@
   height: min(760px, calc(100vh - 40px));
   max-height: 100%;
   background: var(--bg-primary);
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--border-color);
   overflow: hidden;
   animation: settingsScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -132,9 +132,21 @@
     }
 
     &.active {
+      position: relative;
       background: var(--bg-hover);
       color: var(--text-primary);
-      font-weight: 600;
+      font-weight: 500;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 20%;
+        bottom: 20%;
+        width: 3px;
+        background: var(--primary);
+        border-radius: 0 4px 4px 0;
+      }
     }
   }
 
@@ -142,9 +154,6 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    margin-top: 8px;
-    border-top: 1px solid var(--border-color);
-    padding-top: 8px;
   }
 
   .tab-group-trigger {
@@ -184,7 +193,7 @@
 
 .settings-body {
   flex: 1;
-  padding: 32px 40px;
+  padding: 24px 32px;
   overflow-y: auto;
   min-width: 0;
 
@@ -245,6 +254,10 @@
 
 .form-group {
   margin-bottom: 24px;
+  padding: 16px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
 
   &:last-child {
     margin-bottom: 0;
@@ -321,10 +334,10 @@
 
   input:not(.filter-search-box input) {
     width: 100%;
-    padding: 10px 14px;
+    padding: 8px 12px;
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 13px;
     background: transparent;
     color: var(--text-primary);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -344,11 +357,11 @@
 
   select {
     width: 100%;
-    padding: 10px 16px;
+    padding: 8px 12px;
     padding-right: 36px;
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 13px;
     background: transparent;
     color: var(--text-primary);
     margin-bottom: 10px;
@@ -392,10 +405,10 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 10px 14px;
+    padding: 8px 12px;
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 13px;
     background: transparent;
     color: var(--text-primary);
     cursor: pointer;
@@ -887,11 +900,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   padding: 8px 16px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -929,8 +942,8 @@
 
 .btn-sm {
   padding: 6px 12px;
-  font-size: 13px;
-  border-radius: 6px;
+  font-size: 12px;
+  border-radius: 4px;
 }
 
 .btn-row {
@@ -2558,12 +2571,14 @@
 .path-selector {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
 
   input {
     margin-bottom: 0 !important;
     flex: 1;
-    min-width: 220px;
+    min-width: 0;
+    width: auto !important;
     font-family: monospace;
     font-size: 12px;
   }
@@ -2893,8 +2908,8 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 18px;
-    padding: 18px;
-    border-radius: 18px;
+    padding: 16px;
+    border-radius: 10px;
     border: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
     background: linear-gradient(
       180deg,
@@ -2990,7 +3005,7 @@
 
   .anti-revoke-control-card {
     border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
-    border-radius: 16px;
+    border-radius: 10px;
     padding: 14px;
     background: color-mix(in srgb, var(--bg-secondary) 95%, var(--bg-primary) 5%);
   }
