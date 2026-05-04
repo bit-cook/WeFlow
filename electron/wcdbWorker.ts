@@ -50,6 +50,9 @@ if (parentPort) {
                 case 'getSessions':
                     result = await core.getSessions()
                     break
+                case 'markAllSessionsRead':
+                    result = await core.markAllSessionsRead()
+                    break
                 case 'getMessages':
                     result = await core.getMessages(payload.sessionId, payload.limit, payload.offset)
                     break

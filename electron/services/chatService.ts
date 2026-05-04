@@ -978,6 +978,23 @@ class ChatService {
     }
   }
 
+  async markAllSessionsRead(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const connectResult = await this.ensureConnected()
+      if (!connectResult.success) {
+        return { success: false, error: connectResult.error }
+      }
+      const result = await wcdbService.markAllSessionsRead()
+      if (result.success) {
+        this.syntheticUnreadState.clear()
+      }
+      return result
+    } catch (e) {
+      console.error('ChatService: 一键已读失败:', e)
+      return { success: false, error: String(e) }
+    }
+  }
+
   private getSessionUsername(row: Record<string, any>): string {
     return String(
       row.username ||

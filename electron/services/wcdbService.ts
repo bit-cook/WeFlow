@@ -204,6 +204,10 @@ export class WcdbService {
     return this.callWorker('getSessions')
   }
 
+  async markAllSessionsRead(): Promise<{ success: boolean; error?: string }> {
+    return this.callWorker('markAllSessionsRead')
+  }
+
   /**
    * 获取消息列表
    */

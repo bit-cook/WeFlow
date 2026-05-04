@@ -35,6 +35,7 @@ export class WcdbCore {
   private wcdbUpdateMessage: any = null
   private wcdbDeleteMessage: any = null
   private wcdbGetSessions: any = null
+  private wcdbMarkAllSessionsRead: any = null
   private wcdbGetMessages: any = null
   private wcdbGetMessageCount: any = null
   private wcdbGetDisplayNames: any = null
@@ -809,6 +810,13 @@ export class WcdbCore {
 
       // wcdb_status wcdb_get_sessions(wcdb_handle handle, char** out_json)
       this.wcdbGetSessions = this.lib.func('int32 wcdb_get_sessions(int64 handle, _Out_ void** outJson)')
+
+      // wcdb_status wcdb_mark_all_sessions_read(wcdb_handle handle, char** out_error)
+      try {
+        this.wcdbMarkAllSessionsRead = this.lib.func('int32 wcdb_mark_all_sessions_read(int64 handle, _Out_ void** outError)')
+      } catch {
+        this.wcdbMarkAllSessionsRead = null
+      }
 
       // wcdb_status wcdb_get_messages(wcdb_handle handle, const char* username, int32_t limit, int32_t offset, char** out_json)
       this.wcdbGetMessages = this.lib.func('int32 wcdb_get_messages(int64 handle, const char* username, int32 limit, int32 offset, _Out_ void** outJson)')
@@ -1693,6 +1701,39 @@ export class WcdbCore {
       return { success: true, sessions }
     } catch (e) {
       this.writeLog(`getSessions exception: ${String(e)}`)
+      return { success: false, error: String(e) }
+    }
+  }
+
+  async markAllSessionsRead(): Promise<{ success: boolean; error?: string }> {
+    if (!this.ensureReady()) {
+      return { success: false, error: 'WCDB 未连接' }
+    }
+    if (!this.wcdbMarkAllSessionsRead) {
+      return { success: false, error: '当前数据服务版本不支持一键已读' }
+    }
+    try {
+      await new Promise(resolve => setImmediate(resolve))
+
+      const outPtr = [null as any]
+      const result = this.wcdbMarkAllSessionsRead(this.handle, outPtr)
+      let message = ''
+      if (outPtr[0]) {
+        try { message = this.koffi.decode(outPtr[0], 'char', -1) } catch { }
+        try { this.wcdbFreeString(outPtr[0]) } catch { }
+      }
+
+      await new Promise(resolve => setImmediate(resolve))
+
+      if (result !== 0) {
+        this.writeLog(`markAllSessionsRead failed: code=${result} error=${message}`)
+        return { success: false, error: message || `一键已读失败: ${result}` }
+      }
+      this.clearMediaStreamSessionCache()
+      this.writeLog('markAllSessionsRead ok')
+      return { success: true }
+    } catch (e) {
+      this.writeLog(`markAllSessionsRead exception: ${String(e)}`)
       return { success: false, error: String(e) }
     }
   }

@@ -271,6 +271,7 @@ export interface ElectronAPI {
   chat: {
     connect: () => Promise<{ success: boolean; error?: string }>
     getSessions: () => Promise<{ success: boolean; sessions?: ChatSession[]; error?: string }>
+    markAllSessionsRead: () => Promise<{ success: boolean; error?: string }>
     getAntiRevokeSessions: () => Promise<{ success: boolean; sessions?: ChatSession[]; error?: string }>
     getSessionStatuses: (usernames: string[]) => Promise<{
       success: boolean

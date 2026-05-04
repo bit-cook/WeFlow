@@ -1453,6 +1453,7 @@ function ChatPage(props: ChatPageProps) {
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(260)
   const [isResizing, setIsResizing] = useState(false)
+  const [isMarkingAllSessionsRead, setIsMarkingAllSessionsRead] = useState(false)
   const [showDetailPanel, setShowDetailPanel] = useState(false)
   const [showGroupMembersPanel, setShowGroupMembersPanel] = useState(false)
   const [sessionDetail, setSessionDetail] = useState<SessionDetail | null>(null)
@@ -3127,6 +3128,35 @@ function ChatPage(props: ChatPageProps) {
       } else {
         setLoadingSessions(false)
       }
+    }
+  }
+
+  const handleMarkAllSessionsRead = async () => {
+    if (isMarkingAllSessionsRead || isLoadingSessions || isRefreshingSessions) return
+    setIsMarkingAllSessionsRead(true)
+    setConnectionError(null)
+    try {
+      const result = await window.electronAPI.chat.markAllSessionsRead()
+      if (!result.success) {
+        setConnectionError(result.error || '一键已读失败')
+        return
+      }
+
+      const latestSessions = useChatStore.getState().sessions || []
+      const nextSessions = latestSessions.map((session) => (
+        session.unreadCount > 0 ? { ...session, unreadCount: 0 } : session
+      ))
+      setSessions(nextSessions)
+      sessionsRef.current = nextSessions
+
+      const scope = await resolveChatCacheScope()
+      persistSessionListCache(scope, nextSessions)
+      await loadSessions({ silent: true })
+    } catch (e) {
+      console.error('一键已读失败:', e)
+      setConnectionError(`一键已读失败: ${String(e)}`)
+    } finally {
+      setIsMarkingAllSessionsRead(false)
     }
   }
 
@@ -6774,6 +6804,15 @@ function ChatPage(props: ChatPageProps) {
               </div>
               <button className="icon-btn refresh-btn" onClick={handleRefresh} disabled={isLoadingSessions || isRefreshingSessions}>
                 <RefreshCw size={16} className={(isLoadingSessions || isRefreshingSessions) ? 'spin' : ''} />
+              </button>
+              <button
+                className="icon-btn refresh-btn mark-read-btn"
+                onClick={handleMarkAllSessionsRead}
+                disabled={isMarkingAllSessionsRead || isLoadingSessions || isRefreshingSessions}
+                title="一键已读"
+                aria-label="一键已读"
+              >
+                {isMarkingAllSessionsRead ? <Loader2 size={16} className="spin" /> : <CheckSquare size={16} />}
               </button>
             </div>
           </div>

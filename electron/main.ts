@@ -2253,6 +2253,10 @@ function registerIpcHandlers() {
     return chatService.getSessions()
   })
 
+  ipcMain.handle('chat:markAllSessionsRead', async () => {
+    return chatService.markAllSessionsRead()
+  })
+
   ipcMain.handle('chat:getSessionStatuses', async (_, usernames: string[]) => {
     return chatService.getSessionStatuses(usernames)
   })
