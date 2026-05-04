@@ -1221,8 +1221,9 @@ export class ImageDecryptService {
     const decryptKey = this.configService.get('decryptKey')
     const wxid = this.configService.get('myWxid')
     if (!dbPath || !decryptKey || !wxid) return false
-    const cleanedWxid = this.cleanAccountDirName(wxid)
-    return await wcdbService.open(dbPath, decryptKey, cleanedWxid)
+    const accountDir = this.configService.getAccountDir(dbPath, wxid)
+    if (!accountDir) return false
+    return await wcdbService.open(accountDir, decryptKey)
   }
 
   private getRowValue(row: any, column: string): any {
