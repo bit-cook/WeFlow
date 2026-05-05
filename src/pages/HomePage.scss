@@ -12,7 +12,6 @@
   max-width: 640px;
   width: 100%;
   padding: 0 24px;
-  animation: homeFadeIn 0.5s ease-out;
 }
 
 .home-title {
@@ -20,80 +19,16 @@
   font-weight: 700;
   margin: 0 0 12px;
   color: var(--text-primary);
-  letter-spacing: -1.5px;
 }
 
 .home-subtitle {
   font-size: 16px;
   color: var(--text-secondary);
-  margin: 0 0 48px;
+  margin: 0;
   line-height: 1.6;
 }
 
-.home-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.home-feature-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--card-bg);
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  color: var(--text-secondary);
-
-  &:hover {
-    background: var(--bg-hover);
-    border-color: var(--text-tertiary);
-    color: var(--text-primary);
-  }
-
-  svg {
-    flex-shrink: 0;
-  }
-}
-
-.home-feature-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.home-feature-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.home-feature-desc {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-@keyframes homeFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (max-width: 480px) {
-  .home-grid {
-    grid-template-columns: 1fr;
-  }
-
   .home-title {
     font-size: 36px;
   }
