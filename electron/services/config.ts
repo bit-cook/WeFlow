@@ -59,6 +59,7 @@ interface ConfigSchema {
 
   // 通知
   notificationEnabled: boolean
+  aiInsightNotificationEnabled: boolean
   notificationPosition: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center'
   notificationFilterMode: 'all' | 'whitelist' | 'blacklist'
   notificationFilterList: string[]
@@ -192,6 +193,7 @@ export class ConfigService {
       ignoredUpdateVersion: '',
       updateChannel: 'auto',
       notificationEnabled: true,
+      aiInsightNotificationEnabled: true,
       notificationPosition: 'top-right',
       notificationFilterMode: 'all',
       notificationFilterList: [],
