@@ -109,25 +109,33 @@ export function createNotificationWindow() {
 export async function showNotification(data: any) {
   // 先检查配置
   const config = ConfigService.getInstance();
-  const enabled = await config.get("notificationEnabled");
-  if (enabled === false) return; // 默认为 true
-
-  // 检查会话过滤
-  const filterMode = config.get("notificationFilterMode") || "all";
-  const filterList = config.get("notificationFilterList") || [];
   const sessionId = typeof data.sessionId === "string" ? data.sessionId : "";
-  // 系统通知（如 "WeFlow 准备就绪"）不是聊天消息，不应受会话白/黑名单影响
-  const isSystemNotification = sessionId.startsWith("weflow-");
+  const channel = typeof data.channel === "string" ? data.channel : "";
+  const isAiInsightNotification = channel === "ai-insight";
 
-  if (!isSystemNotification && filterMode !== "all") {
-    const isInList = sessionId !== "" && filterList.includes(sessionId);
-    if (filterMode === "whitelist" && !isInList) {
-      // 白名单模式：不在列表中则不显示（空列表视为全部拦截）
-      return;
-    }
-    if (filterMode === "blacklist" && isInList) {
-      // 黑名单模式：在列表中则不显示
-      return;
+  if (isAiInsightNotification) {
+    const enabled = await config.get("aiInsightNotificationEnabled");
+    if (enabled === false) return; // 默认为 true
+  } else {
+    const enabled = await config.get("notificationEnabled");
+    if (enabled === false) return; // 默认为 true
+
+    // 检查会话过滤
+    const filterMode = config.get("notificationFilterMode") || "all";
+    const filterList = config.get("notificationFilterList") || [];
+    // 系统通知（如 "WeFlow 准备就绪"）不是聊天消息，不应受会话白/黑名单影响
+    const isSystemNotification = sessionId.startsWith("weflow-");
+
+    if (!isSystemNotification && filterMode !== "all") {
+      const isInList = sessionId !== "" && filterList.includes(sessionId);
+      if (filterMode === "whitelist" && !isInList) {
+        // 白名单模式：不在列表中则不显示（空列表视为全部拦截）
+        return;
+      }
+      if (filterMode === "blacklist" && isInList) {
+        // 黑名单模式：在列表中则不显示
+        return;
+      }
     }
   }
 

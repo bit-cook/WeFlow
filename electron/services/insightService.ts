@@ -18,11 +18,12 @@ import http from 'http'
 import fs from 'fs'
 import path from 'path'
 import { URL } from 'url'
-import { app, Notification } from 'electron'
+import { app } from 'electron'
 import { ConfigService } from './config'
 import { chatService, ChatSession, Message } from './chatService'
 import { snsService } from './snsService'
 import { weiboService } from './social/weiboService'
+import { showNotification } from '../windows/notificationWindow'
 
 // ─── 常量 ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ const API_MAX_TOKENS_DEFAULT = 200
 const API_MAX_TOKENS_MIN = 1
 const API_MAX_TOKENS_MAX = 65_535
 const API_TEMPERATURE = 0.7
+const INSIGHT_NOTIFICATION_AVATAR_URL = './assets/insight/AI_Insight.png'
 
 /** 沉默天数阈值默认值 */
 const DEFAULT_SILENCE_DAYS = 3
@@ -518,7 +520,13 @@ class InsightService {
         displayName,
         triggerReason: 'activity'
       })
-      return { success: true, message: `已向「${displayName}」发送测试见解，请查看右下角弹窗` }
+      const notificationEnabled = this.config.get('aiInsightNotificationEnabled') !== false
+      return {
+        success: true,
+        message: notificationEnabled
+          ? `已向「${displayName}」发送测试见解，请查看通知弹窗`
+          : `已生成「${displayName}」的测试见解，AI 见解消息通知当前已关闭`
+      }
     } catch (e) {
       return { success: false, message: `测试失败：${(e as Error).message}` }
     }
@@ -1250,14 +1258,20 @@ ${topMentionText}
       const insight = result.slice(0, 120)
       const notifTitle = `见解 · ${resolvedDisplayName}`
 
-      insightLog('INFO', `推送通知 → ${resolvedDisplayName}: ${insight}`)
+      const insightNotificationEnabled = this.config.get('aiInsightNotificationEnabled') !== false
+      if (insightNotificationEnabled) {
+        insightLog('INFO', `推送通知 → ${resolvedDisplayName}: ${insight}`)
 
-      // 渠道一：Electron 原生系统通知
-      if (Notification.isSupported()) {
-        const notif = new Notification({ title: notifTitle, body: insight, silent: false })
-        notif.show()
+        // 渠道一：应用内通知窗口。AI 见解使用独立通知开关，不受新消息通知开关和会话过滤影响。
+        await showNotification({
+          title: notifTitle,
+          content: insight,
+          avatarUrl: INSIGHT_NOTIFICATION_AVATAR_URL,
+          sessionId,
+          channel: 'ai-insight'
+        })
       } else {
-        insightLog('WARN', '当前系统不支持原生通知')
+        insightLog('INFO', `AI 见解消息通知已关闭，跳过应用通知 → ${resolvedDisplayName}: ${insight}`)
       }
 
       // 渠道二：Telegram Bot 推送（可选）
@@ -1278,7 +1292,7 @@ ${topMentionText}
         }
       }
 
-      insightLog('INFO', `已为 ${resolvedDisplayName} 推送见解`)
+      insightLog('INFO', `已完成 ${resolvedDisplayName} 的见解处理`)
       this.recordTrigger(sessionId)
     } catch (e) {
       insightDebugSection(

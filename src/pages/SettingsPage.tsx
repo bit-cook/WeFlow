@@ -199,6 +199,7 @@ function SettingsPage({ onClose }: SettingsPageProps = {}) {
   const [transcribeLanguages, setTranscribeLanguages] = useState<string[]>(['zh'])
 
   const [notificationEnabled, setNotificationEnabled] = useState(true)
+  const [aiInsightNotificationEnabled, setAiInsightNotificationEnabled] = useState(true)
   const [notificationPosition, setNotificationPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center'>('top-right')
   const [notificationFilterMode, setNotificationFilterMode] = useState<'all' | 'whitelist' | 'blacklist'>('all')
   const [notificationFilterList, setNotificationFilterList] = useState<string[]>([])
@@ -458,6 +459,7 @@ function SettingsPage({ onClose }: SettingsPageProps = {}) {
       const savedAutoTranscribe = await configService.getAutoTranscribeVoice()
       const savedTranscribeLanguages = await configService.getTranscribeLanguages()
       const savedNotificationEnabled = await configService.getNotificationEnabled()
+      const savedAiInsightNotificationEnabled = await configService.getAiInsightNotificationEnabled()
       const savedNotificationPosition = await configService.getNotificationPosition()
       const savedNotificationFilterMode = await configService.getNotificationFilterMode()
       const savedNotificationFilterList = await configService.getNotificationFilterList()
@@ -512,6 +514,7 @@ function SettingsPage({ onClose }: SettingsPageProps = {}) {
       setTranscribeLanguages(savedTranscribeLanguages)
 
       setNotificationEnabled(savedNotificationEnabled)
+      setAiInsightNotificationEnabled(savedAiInsightNotificationEnabled)
       setNotificationPosition(savedNotificationPosition)
       setNotificationFilterMode(savedNotificationFilterMode)
       setNotificationFilterList(savedNotificationFilterList)
@@ -1904,6 +1907,29 @@ function SettingsPage({ onClose }: SettingsPageProps = {}) {
         </div>
 
         <div className="form-group">
+          <label>AI 见解消息通知</label>
+          <span className="form-hint">仅控制 AI 见解弹窗，不影响新消息通知、会话过滤或 Telegram 推送</span>
+          <div className="log-toggle-line">
+            <span className="log-status">{aiInsightNotificationEnabled ? '已开启' : '已关闭'}</span>
+            <label className="switch" htmlFor="ai-insight-notification-enabled-toggle">
+              <input
+                id="ai-insight-notification-enabled-toggle"
+                className="switch-input"
+                type="checkbox"
+                checked={aiInsightNotificationEnabled}
+                onChange={async (e) => {
+                  const val = e.target.checked
+                  setAiInsightNotificationEnabled(val)
+                  await configService.setAiInsightNotificationEnabled(val)
+                  showMessage(val ? '已开启 AI 见解消息通知' : '已关闭 AI 见解消息通知', true)
+                }}
+              />
+              <span className="switch-slider" />
+            </label>
+          </div>
+        </div>
+
+        <div className="form-group">
           <label>通知显示位置</label>
           <span className="form-hint">选择通知弹窗在屏幕上的显示位置</span>
           <div className="custom-select">
@@ -3209,7 +3235,7 @@ function SettingsPage({ onClose }: SettingsPageProps = {}) {
       <div className="form-group">
         <label>AI 见解</label>
         <span className="form-hint">
-          开启后，AI 会在后台默默分析聊天数据，在合适的时机通过右下角弹窗送出一针见血的见解——例如提醒你久未联系的朋友，或对你刚刚的对话提出回复建议。默认关闭，所有分析均在本地发起请求，不经过任何第三方中间服务。
+          开启后，AI 会在后台默默分析聊天数据，在合适的时机通过应用通知送出一针见血的见解——例如提醒你久未联系的朋友，或对你刚刚的对话提出回复建议。默认关闭，所有分析均在本地发起请求，不经过任何第三方中间服务。
         </span>
         <div className="log-toggle-line">
           <span className="log-status">{aiInsightEnabled ? '已开启' : '已关闭'}</span>
