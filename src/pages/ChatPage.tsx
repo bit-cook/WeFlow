@@ -30,7 +30,6 @@ import {
   requestExportSessionStatus
 } from '../services/exportBridge'
 import ChatHeader from './Chat/ChatHeader'
-import ChatInputArea from './Chat/ChatInputArea'
 import ChatMessageBubble from './Chat/ChatMessageBubble'
 import '../styles/batchTranscribe.scss'
 import './ChatPage.scss'
@@ -7202,7 +7201,6 @@ function ChatPage(props: ChatPageProps) {
                   <span>回到底部</span>
                 </div>
               </div>
-              <ChatInputArea placeholder="聊天记录" onFocusSearch={handleToggleInSessionSearch} />
 
               {/* 群成员面板 */}
               {showGroupMembersPanel && isCurrentSessionGroup && (
