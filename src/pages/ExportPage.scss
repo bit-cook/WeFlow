@@ -1157,6 +1157,29 @@
   padding: 0 16px 16px;
 }
 
+.export-defaults-modal {
+  width: min(760px, calc(100vw - 40px));
+  max-height: min(82vh, 820px);
+  border-radius: 16px;
+  background: var(--bg-primary);
+  border-color: color-mix(in srgb, var(--border-color) 80%, transparent);
+  box-shadow: var(--shadow-md);
+}
+
+.export-defaults-modal-header {
+  padding: 16px 18px 12px;
+}
+
+.export-defaults-modal-body {
+  padding: 14px 18px 16px;
+  overflow-x: hidden;
+}
+
+.export-defaults-modal-actions {
+  padding: 0 18px 16px;
+  background: var(--bg-primary);
+}
+
 .task-center-card-label {
   line-height: 1;
   white-space: nowrap;
