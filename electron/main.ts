@@ -1008,8 +1008,8 @@ function createSplashWindow(): BrowserWindow {
         : join(process.resourcesPath, 'icon.ico'))
 
   splashWindow = new BrowserWindow({
-    width: 760,
-    height: 460,
+    width: 856,
+    height: 540,
     resizable: false,
     frame: false,
     transparent: true,
