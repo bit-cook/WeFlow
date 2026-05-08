@@ -1158,20 +1158,21 @@
 }
 
 .export-defaults-modal {
-  width: min(760px, calc(100vw - 40px));
+  width: min(740px, calc(100vw - 40px));
   max-height: min(82vh, 820px);
   border-radius: 16px;
   background: var(--bg-primary);
-  border-color: color-mix(in srgb, var(--border-color) 80%, transparent);
+  border-color: color-mix(in srgb, var(--border-color) 68%, transparent);
   box-shadow: var(--shadow-md);
 }
 
 .export-defaults-modal-header {
-  padding: 16px 18px 12px;
+  padding: 16px 18px 10px;
+  border-bottom-color: color-mix(in srgb, var(--border-color) 64%, transparent);
 }
 
 .export-defaults-modal-body {
-  padding: 14px 18px 16px;
+  padding: 12px 18px 14px;
   overflow-x: hidden;
 }
 
