@@ -116,7 +116,7 @@ class InsightRecordService {
 
   private getCurrentAccountScope(): string {
     const config = ConfigService.getInstance()
-    const myWxid = String(config.get('myWxid') || '').trim()
+    const myWxid = String(config.getMyWxidCleaned() || '').trim()
     if (myWxid) return `wxid:${myWxid}`
 
     const dbPath = String(config.get('dbPath') || '').trim()

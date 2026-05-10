@@ -338,7 +338,7 @@ class ExportService {
   }
 
   private getConfiguredMyWxid(): string {
-    return String(this.runtimeConfig?.myWxid || this.configService.get('myWxid') || '').trim()
+    return String(this.runtimeConfig?.myWxid || this.configService.getMyWxidCleaned() || '').trim()
   }
 
   private normalizeSessionIds(sessionIds: string[]): string[] {

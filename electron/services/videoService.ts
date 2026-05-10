@@ -96,7 +96,7 @@ class VideoService {
    * 获取当前用户的wxid
    */
   private getMyWxid(): string {
-    return this.configService.get('myWxid') || ''
+    return this.configService.getMyWxidCleaned() || ''
   }
 
   /**

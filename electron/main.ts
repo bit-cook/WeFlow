@@ -2430,7 +2430,7 @@ function registerIpcHandlers() {
       return { success: false, error: '请至少选择一项清理范围' }
     }
 
-    const rawWxid = String(cfg.get('myWxid') || '').trim()
+    const rawWxid = String(cfg.getMyWxidCleaned() || '').trim()
     if (!rawWxid) {
       return { success: false, error: '当前账号未登录或未识别，无法清理' }
     }
@@ -3180,7 +3180,7 @@ function registerIpcHandlers() {
     const logEnabled = cfg.get('logEnabled')
     const dbPath = String(cfg.get('dbPath') || '').trim()
     const decryptKey = String(cfg.get('decryptKey') || '').trim()
-    const myWxid = String(cfg.get('myWxid') || '').trim()
+    const myWxid = String(cfg.getMyWxidCleaned() || '').trim()
     const imageKeys = cfg.getImageKeysForCurrentWxid()
     const resourcesPath = app.isPackaged
       ? join(process.resourcesPath, 'resources')
@@ -3329,7 +3329,7 @@ function registerIpcHandlers() {
             options,
             dbPath: String(cfg.get('dbPath') || '').trim(),
             decryptKey: String(cfg.get('decryptKey') || '').trim(),
-            myWxid: String(cfg.get('myWxid') || '').trim(),
+            myWxid: String(cfg.getMyWxidCleaned() || '').trim(),
             imageXorKey: imageKeys.xorKey,
             imageAesKey: imageKeys.aesKey,
             resourcesPath: app.isPackaged ? join(process.resourcesPath, 'resources') : join(app.getAppPath(), 'resources'),
@@ -3398,7 +3398,7 @@ function registerIpcHandlers() {
             options,
             dbPath: String(cfg.get('dbPath') || '').trim(),
             decryptKey: String(cfg.get('decryptKey') || '').trim(),
-            myWxid: String(cfg.get('myWxid') || '').trim(),
+            myWxid: String(cfg.getMyWxidCleaned() || '').trim(),
             resourcesPath: app.isPackaged ? join(process.resourcesPath, 'resources') : join(app.getAppPath(), 'resources'),
             userDataPath: app.getPath('userData'),
             logEnabled: cfg.get('logEnabled')
@@ -3631,7 +3631,7 @@ function registerIpcHandlers() {
     return annualReportService.getAvailableYears({
       dbPath: cfg.get('dbPath'),
       decryptKey: cfg.get('decryptKey'),
-      wxid: cfg.get('myWxid')
+      wxid: cfg.getMyWxidCleaned()
     })
   })
 
@@ -3828,7 +3828,7 @@ function registerIpcHandlers() {
 
     const dbPath = cfg.get('dbPath')
     const decryptKey = cfg.get('decryptKey')
-    const wxid = cfg.get('myWxid')
+    const wxid = cfg.getMyWxidCleaned()
     const logEnabled = cfg.get('logEnabled')
 
     const resourcesPath = app.isPackaged
@@ -3889,7 +3889,7 @@ function registerIpcHandlers() {
 
     const dbPath = cfg.get('dbPath')
     const decryptKey = cfg.get('decryptKey')
-    const wxid = cfg.get('myWxid')
+    const wxid = cfg.getMyWxidCleaned()
     const logEnabled = cfg.get('logEnabled')
     const friendUsername = payload?.friendUsername
     const year = payload?.year ?? 0

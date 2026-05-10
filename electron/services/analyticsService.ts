@@ -127,6 +127,7 @@ class AnalyticsService {
     const wxid = this.configService.get('myWxid')
     const dbPath = this.configService.get('dbPath')
     const decryptKey = this.configService.get('decryptKey')
+
     if (!wxid) return { success: false, error: '未配置微信ID' }
     if (!dbPath) return { success: false, error: '未配置数据库路径' }
     if (!decryptKey) return { success: false, error: '未配置解密密钥' }
@@ -138,6 +139,7 @@ class AnalyticsService {
     if (!ok) return { success: false, error: 'WCDB 打开失败' }
 
     const cleanedWxid = this.cleanAccountDirName(wxid)
+
     return { success: true, cleanedWxid }
   }
 
@@ -237,8 +239,7 @@ class AnalyticsService {
   }
 
   private async computeAggregateByCursor(sessionIds: string[], beginTimestamp = 0, endTimestamp = 0): Promise<any> {
-    const wxid = this.configService.get('myWxid')
-    const cleanedWxid = wxid ? this.cleanAccountDirName(wxid) : ''
+    const cleanedWxid = this.configService.getMyWxidCleaned() || ''
 
     const aggregate = {
       total: 0,
@@ -275,8 +276,7 @@ class AnalyticsService {
             const myWxidLower = cleanedWxid.toLowerCase()
             isSend = (
               senderLower === myWxidLower ||
-              // 兼容非 wxid 开头的账号（如果文件夹名带后缀，如 custom_backup，而 sender 是 custom）
-              (myWxidLower.startsWith(senderLower + '_'))
+              senderLower.startsWith(myWxidLower + '_')
             )
           }
         }

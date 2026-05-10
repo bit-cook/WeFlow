@@ -851,7 +851,7 @@ class ChatService {
       // 转换为 ChatSession（先加载缓存，但不等待额外状态查询）
       const sessions: ChatSession[] = []
       const now = Date.now()
-      const myWxid = this.configService.get('myWxid')
+      const myWxid = this.configService.getMyWxidCleaned()
 
       for (const row of rows) {
         const username =
@@ -1086,7 +1086,7 @@ class ChatService {
 
     const contactMap = await this.loadAntiRevokeContactMap(privateCandidateIds)
     const sessions: ChatSession[] = []
-    const myWxid = this.configService.get('myWxid')
+    const myWxid = this.configService.getMyWxidCleaned()
     const now = Date.now()
 
     for (const { username, row } of candidateRows) {
@@ -2027,7 +2027,7 @@ class ChatService {
 
   private getContactsCacheScope(): string {
     const dbPath = String(this.configService.get('dbPath') || '').trim()
-    const myWxid = String(this.configService.get('myWxid') || '').trim()
+    const myWxid = String(this.configService.getMyWxidCleaned() || '').trim()
     return `${dbPath}::${myWxid}`
   }
 
@@ -3699,7 +3699,7 @@ class ChatService {
       }
     }
 
-    const myWxid = String(this.configService.get('myWxid') || '').trim()
+    const myWxid = String(this.configService.getMyWxidCleaned() || '').trim()
     const selfKeys = this.buildIdentityKeys(myWxid)
     if (selfKeys.length === 0) {
       return {
@@ -3877,7 +3877,7 @@ class ChatService {
 
   private refreshSessionMessageCountCacheScope(): void {
     const dbPath = String(this.configService.get('dbPath') || '')
-    const myWxid = String(this.configService.get('myWxid') || '')
+    const myWxid = String(this.configService.getMyWxidCleaned() || '')
     const scope = `${dbPath}::${myWxid}`
     if (scope === this.sessionMessageCountCacheScope) {
       this.refreshSessionStatsCacheScope(scope)
@@ -4831,7 +4831,7 @@ class ChatService {
   }
 
   mapRowsToMessagesLiteForApi(rows: Record<string, any>[]): Message[] {
-    const myWxid = String(this.configService.get('myWxid') || '').trim()
+    const myWxid = String(this.configService.getMyWxidCleaned() || '').trim()
     const messages: Message[] = []
     for (const row of rows) {
       const sourceInfo = this.getMessageSourceInfo(row)
@@ -4882,7 +4882,7 @@ class ChatService {
   }
 
   private mapRowsToMessages(rows: Record<string, any>[], sessionId: string): Message[] {
-    const myWxid = this.configService.get('myWxid')
+    const myWxid = this.configService.getMyWxidCleaned()
 
     const messages: Message[] = []
     for (const row of rows) {
@@ -7265,7 +7265,7 @@ class ChatService {
       }
 
       // 获取当前用户 wxid，用于识别"自己"
-      const myWxid = this.configService.get('myWxid')
+      const myWxid = this.configService.getMyWxidCleaned()
       const cleanedMyWxid = myWxid ? this.cleanAccountDirName(myWxid) : ''
 
       // 解析付款方名称：自己 > 群昵称 > 备注 > 昵称 > alias > wxid
@@ -7319,7 +7319,7 @@ class ChatService {
         return { success: false, error: connectResult.error }
       }
 
-      const myWxid = this.configService.get('myWxid')
+      const myWxid = this.configService.getMyWxidCleaned()
       if (!myWxid) {
         return { success: false, error: '未配置微信ID' }
       }
@@ -7963,7 +7963,7 @@ class ChatService {
       }
 
       if (pendingSessionIds.length > 0) {
-        const myWxid = this.configService.get('myWxid') || ''
+        const myWxid = this.configService.getMyWxidCleaned() || ''
         const selfIdentitySet = new Set<string>(this.buildIdentityKeys(myWxid))
         let usedBatchedCompute = false
         if (pendingSessionIds.length === 1) {
@@ -8270,7 +8270,7 @@ class ChatService {
 
       // 构建查找候选
       const candidates: string[] = []
-      const myWxid = this.configService.get('myWxid') as string
+      const myWxid = this.configService.getMyWxidCleaned() as string
 
       // 如果有 senderWxid，优先使用（群聊中最重要）
       if (senderWxid) {
@@ -8469,7 +8469,7 @@ class ChatService {
       if (!normalizedSessionId) return { success: true, prepared: 0 }
       if (!Array.isArray(messages) || messages.length === 0) return { success: true, prepared: 0 }
 
-      const myWxid = String(this.configService.get('myWxid') || '').trim()
+      const myWxid = String(this.configService.getMyWxidCleaned() || '').trim()
       const nowPrepared = new Set<string>()
       const pending: Array<{
         cacheKey: string
@@ -9207,7 +9207,7 @@ class ChatService {
 
       let myWxid = String(options?.myWxid || '').trim()
       if (!myWxid) {
-        myWxid = String(this.configService.get('myWxid') || '').trim()
+        myWxid = String(this.configService.getMyWxidCleaned() || '').trim()
       }
       if (!myWxid) {
         return { success: false, error: '未识别当前账号 wxid' }

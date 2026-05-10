@@ -251,7 +251,7 @@ class GroupAnalyticsService {
   }
 
   private async ensureConnected(): Promise<{ success: boolean; error?: string }> {
-    const wxid = this.configService.get('myWxid')
+    const wxid = this.configService.getMyWxidCleaned()
     const dbPath = this.configService.get('dbPath')
     const decryptKey = this.configService.get('decryptKey')
     if (!wxid) return { success: false, error: '未配置微信ID' }
@@ -1557,7 +1557,7 @@ class GroupAnalyticsService {
       const phraseCounts = new Map<string, number>()
       const emojiCounts = new Map<string, number>()
 
-      const myWxid = String(this.configService.get('myWxid') || '').trim()
+      const myWxid = String(this.configService.getMyWxidCleaned() || '').trim()
 
       try {
         while (true) {

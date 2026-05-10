@@ -11,6 +11,19 @@ export function getLastDllInitError(): string | null {
   return lastDllInitError
 }
 
+function cleanAccountDirName(dirName: string): string {
+  const trimmed = dirName.trim()
+  if (!trimmed) return trimmed
+  if (trimmed.toLowerCase().startsWith('wxid_')) {
+    const match = trimmed.match(/^(wxid_[^_]+)/i)
+    if (match) return match[1]
+    return trimmed
+  }
+  const suffixMatch = trimmed.match(/^(.+)_([a-zA-Z0-9]{4})$/)
+  if (suffixMatch) return suffixMatch[1]
+  return trimmed
+}
+
 export class WcdbCore {
   private resourcesPath: string | null = null
   private userDataPath: string | null = null
@@ -1607,7 +1620,8 @@ export class WcdbCore {
       }
 
       // 从账号目录路径中提取 wxid（目录名）
-      const wxid = basename(accountDir)
+      const rawWxid = basename(accountDir)
+      const wxid = cleanAccountDirName(rawWxid)
 
       this.handle = handle
       this.currentPath = accountDir

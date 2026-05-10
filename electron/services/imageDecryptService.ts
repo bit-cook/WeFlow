@@ -109,7 +109,7 @@ export class ImageDecryptService {
   }
 
   private getConfiguredMyWxid(): string {
-    return String(this.runtimeConfig?.myWxid || this.configService.get('myWxid') || '').trim()
+    return String(this.runtimeConfig?.myWxid || this.configService.getMyWxidCleaned() || '').trim()
   }
 
   private getConfiguredImageKeys(): { xorKey: unknown; aesKey: string } {

@@ -674,7 +674,7 @@ class HttpService {
     const targets = messages.filter((msg) => !String(msg.senderUsername || '').trim())
     if (targets.length === 0) return
 
-    const myWxid = (this.configService.get('myWxid') || '').trim()
+    const myWxid = (this.configService.getMyWxidCleaned() || '').trim()
     const MAX_DETAIL_BACKFILL = 120
     if (targets.length > MAX_DETAIL_BACKFILL) {
       for (const msg of targets) {
@@ -1832,7 +1832,7 @@ class HttpService {
     mediaMap: Map<number, ApiExportedMedia> = new Map()
   ): Promise<ChatLabData> {
     const isGroup = talkerId.endsWith('@chatroom')
-    const myWxid = this.configService.get('myWxid') || ''
+    const myWxid = this.configService.getMyWxidCleaned() || ''
     const normalizedMyWxid = this.normalizeAccountId(myWxid).toLowerCase()
 
     // 收集所有发送者

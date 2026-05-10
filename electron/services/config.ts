@@ -838,6 +838,14 @@ export class ConfigService {
   // === 工具方法 ===
 
   /**
+   * 获取当前用户 wxid（清洗后，不带后缀）
+   */
+  getMyWxidCleaned(): string {
+    const wxid = this.get('myWxid')
+    return wxid ? this.cleanAccountDirName(wxid) : ''
+  }
+
+  /**
    * 获取当前 wxid 对应的图片密钥，优先从 wxidConfigs 中取，找不到则回退到全局配置
    */
   getImageKeysForCurrentWxid(): { xorKey: unknown; aesKey: string } {

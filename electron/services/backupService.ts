@@ -447,7 +447,7 @@ export class BackupService {
   }
 
   private async ensureConnected(wxidOverride?: string): Promise<{ success: boolean; wxid?: string; dbPath?: string; dbStorage?: string; error?: string }> {
-    const configuredWxid = String(this.configService.get('myWxid') || '').trim()
+    const configuredWxid = String(this.configService.getMyWxidCleaned() || '').trim()
     const wxid = String(wxidOverride || configuredWxid || '').trim()
     const dbPath = String(this.configService.get('dbPath') || '').trim()
     const decryptKey = String(this.configService.get('decryptKey') || '').trim()

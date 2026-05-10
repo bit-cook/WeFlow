@@ -914,7 +914,7 @@ class SnsService {
         const allowTimelineFallback = options?.allowTimelineFallback ?? true
         const preferCache = options?.preferCache ?? false
         const now = Date.now()
-        const myWxid = this.toOptionalString(this.configService.get('myWxid'))
+        const myWxid = this.toOptionalString(this.configService.getMyWxidCleaned())
 
         try {
             if (preferCache && this.exportStatsCache && now - this.exportStatsCache.updatedAt <= this.exportStatsCacheTtlMs) {

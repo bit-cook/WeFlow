@@ -198,10 +198,35 @@ export async function setDbPath(path: string): Promise<void> {
   await config.set(CONFIG_KEYS.DB_PATH, path)
 }
 
-// 获取当前用户 wxid
+// 清洗账号目录名称（移除后缀）
+function cleanAccountDirName(dirName: string): string {
+  const trimmed = dirName.trim()
+  if (!trimmed) return trimmed
+
+  // wxid_ 开头的特殊处理
+  if (trimmed.toLowerCase().startsWith('wxid_')) {
+    const match = trimmed.match(/^(wxid_[^_]+)/i)
+    if (match) return match[1]
+    return trimmed
+  }
+
+  // 移除4位后缀
+  const suffixMatch = trimmed.match(/^(.+)_([a-zA-Z0-9]{4})$/)
+  if (suffixMatch) return suffixMatch[1]
+
+  return trimmed
+}
+
+// 获取当前用户 wxid（原始值，可能带后缀）
 export async function getMyWxid(): Promise<string | null> {
   const value = await config.get(CONFIG_KEYS.MY_WXID)
   return value as string | null
+}
+
+// 获取当前用户 wxid（清洗后，不带后缀）
+export async function getMyWxidCleaned(): Promise<string | null> {
+  const value = await getMyWxid()
+  return value ? cleanAccountDirName(value) : null
 }
 
 // 设置当前用户 wxid
