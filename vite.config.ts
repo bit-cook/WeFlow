@@ -112,7 +112,8 @@ export default defineConfig({
                 'shelljs',
                 'exceljs',
                 'node-llama-cpp',
-                '@vscode/sudo-prompt'
+                '@vscode/sudo-prompt',
+                'silk-wasm'
               ]
             }
           }
