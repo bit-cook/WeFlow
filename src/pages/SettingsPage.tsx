@@ -1698,6 +1698,7 @@ function SettingsPage({ onClose }: SettingsPageProps = {}) {
                   if (selected) return
                   setQuoteLayout(option.value)
                   await configService.setQuoteLayout(option.value)
+                  window.dispatchEvent(new CustomEvent('quote-layout-changed', { detail: option.value }))
                   showMessage(option.successMessage, true)
                 }}
                 role="radio"
