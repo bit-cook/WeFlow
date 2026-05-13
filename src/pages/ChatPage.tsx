@@ -1511,6 +1511,7 @@ function ChatPage(props: ChatPageProps) {
   const [groupMemberSearchKeyword, setGroupMemberSearchKeyword] = useState('')
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [highlightedMessageKeys, setHighlightedMessageKeys] = useState<string[]>([])
+  const [quoteLayout, setQuoteLayout] = useState<configService.QuoteLayout>('quote-top')
   const [isRefreshingSessions, setIsRefreshingSessions] = useState(false)
   const [foldedView, setFoldedView] = useState(false) // 是否在"折叠的群聊"视图
   const [bizView, setBizView] = useState(false) // 是否在"公众号"视图
@@ -3064,6 +3065,33 @@ function ChatPage(props: ChatPageProps) {
       })
     return () => {
       canceled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let canceled = false
+    const loadQuoteLayout = () => {
+      void configService.getQuoteLayout()
+        .then((layout) => {
+          if (!canceled) setQuoteLayout(layout)
+        })
+        .catch(() => {
+          if (!canceled) setQuoteLayout('quote-top')
+        })
+    }
+
+    loadQuoteLayout()
+    const handleFocus = () => loadQuoteLayout()
+    const handleQuoteLayoutChanged = (event: Event) => {
+      const layout = (event as CustomEvent<configService.QuoteLayout>).detail
+      setQuoteLayout(layout === 'quote-bottom' ? 'quote-bottom' : 'quote-top')
+    }
+    window.addEventListener('focus', handleFocus)
+    window.addEventListener('quote-layout-changed', handleQuoteLayoutChanged)
+    return () => {
+      canceled = true
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('quote-layout-changed', handleQuoteLayoutChanged)
     }
   }, [])
 
@@ -6850,6 +6878,7 @@ function ChatPage(props: ChatPageProps) {
           myAvatarUrl={myAvatarUrl}
           myWxid={myWxid}
           isGroupChat={isCurrentSessionGroup}
+          quoteLayout={quoteLayout}
           autoTranscribeVoiceEnabled={autoTranscribeVoiceEnabled}
           onRequireModelDownload={handleRequireModelDownload}
           onContextMenu={handleContextMenu}
@@ -6870,6 +6899,7 @@ function ChatPage(props: ChatPageProps) {
     myAvatarUrl,
     myWxid,
     isCurrentSessionGroup,
+    quoteLayout,
     autoTranscribeVoiceEnabled,
     handleRequireModelDownload,
     handleContextMenu,
@@ -8434,6 +8464,7 @@ function MessageBubble({
   myAvatarUrl,
   myWxid,
   isGroupChat,
+  quoteLayout,
   autoTranscribeVoiceEnabled,
   onRequireModelDownload,
   onContextMenu,
@@ -8449,6 +8480,7 @@ function MessageBubble({
   myAvatarUrl?: string;
   myWxid?: string;
   isGroupChat?: boolean;
+  quoteLayout: configService.QuoteLayout;
   autoTranscribeVoiceEnabled?: boolean;
   onRequireModelDownload?: (sessionId: string, messageId: string) => void;
   onContextMenu?: (e: React.MouseEvent, message: Message) => void;
@@ -9728,17 +9760,26 @@ function MessageBubble({
     event.stopPropagation()
     onJumpToQuotedMessage(quotedJumpTarget)
   }, [isSelectionMode, onJumpToQuotedMessage, quotedJumpTarget])
-  // Ambient Reply: single fixed layout (anchor above, message below)
+  const isQuoteBelow = quoteLayout === 'quote-bottom'
   const renderBubbleWithQuote = useCallback((quotedNode: React.ReactNode, messageNode: React.ReactNode) => (
-    <div className="bubble-content">
-      {quotedNode}
-      {messageNode}
+    <div className={`bubble-content ${isQuoteBelow ? 'quote-layout-bottom' : 'quote-layout-top'}`}>
+      {isQuoteBelow ? (
+        <>
+          {messageNode}
+          {quotedNode}
+        </>
+      ) : (
+        <>
+          {quotedNode}
+          {messageNode}
+        </>
+      )}
     </div>
-  ), [])
+  ), [isQuoteBelow])
 
   // Ambient Reply: render reply-anchor + ghost preview
   const renderQuotedMessageBlock = useCallback((contentNode: React.ReactNode) => (
-    <div className="ambient-reply-wrapper">
+    <div className={`ambient-reply-wrapper ${isQuoteBelow ? 'preview-below' : 'preview-above'}`}>
       {/* Reply anchor - always visible, subtle */}
       <div
         className={`reply-anchor ${quotedJumpTarget ? 'jumpable' : ''}`}
@@ -9761,7 +9802,7 @@ function MessageBubble({
         <div className="reply-ghost-text">{contentNode}</div>
       </div>
     </div>
-  ), [displayQuotedSenderName, handleQuotedJumpClick, handleQuotedJumpKeyDown, isSelectionMode, quotedJumpTarget])
+  ), [displayQuotedSenderName, handleQuotedJumpClick, handleQuotedJumpKeyDown, isQuoteBelow, isSelectionMode, quotedJumpTarget])
 
   const handlePlayVideo = useCallback(async () => {
     if (!videoInfo?.videoUrl) return
@@ -11024,6 +11065,7 @@ const MemoMessageBubble = React.memo(MessageBubble, (prevProps, nextProps) => {
   if (prevProps.myAvatarUrl !== nextProps.myAvatarUrl) return false
   if (prevProps.myWxid !== nextProps.myWxid) return false
   if (prevProps.isGroupChat !== nextProps.isGroupChat) return false
+  if (prevProps.quoteLayout !== nextProps.quoteLayout) return false
   if (prevProps.autoTranscribeVoiceEnabled !== nextProps.autoTranscribeVoiceEnabled) return false
   if (prevProps.isSelectionMode !== nextProps.isSelectionMode) return false
   if (prevProps.isSelected !== nextProps.isSelected) return false

@@ -2566,6 +2566,25 @@
   }
 
   // Ghost preview — appears on hover, frosted glass
+  &.preview-below {
+    margin-top: 4px;
+    margin-bottom: 0;
+
+    .reply-ghost {
+      top: calc(100% + 6px);
+      bottom: auto;
+      transform: translateY(-4px) scale(0.98);
+    }
+
+    &:hover .reply-ghost {
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  &.preview-above {
+    margin-bottom: 4px;
+  }
+
   .reply-ghost {
     position: absolute;
     bottom: calc(100% + 6px);
