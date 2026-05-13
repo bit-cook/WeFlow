@@ -65,7 +65,7 @@ const writeHiddenDeletedAccountNormIds = (ids: Set<string>): void => {
   try {
     window.localStorage.setItem(HIDDEN_DELETED_ACCOUNT_NORM_IDS_KEY, JSON.stringify(Array.from(ids)))
   } catch {
-    // 存储配额或隐私模式
+    
   }
 }
 
