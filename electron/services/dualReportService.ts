@@ -114,7 +114,6 @@ class DualReportService {
     if (!accountDir) return { success: false, error: '无法找到账号目录' }
     const ok = await wcdbService.open(accountDir, decryptKey)
     if (!ok) return { success: false, error: 'WCDB 打开失败' }
-    const cleanedWxid = this.cleanAccountDirName(wxid)
     return { success: true, cleanedWxid, rawWxid: wxid }
   }
 
