@@ -66,6 +66,7 @@ export const CONFIG_KEYS = {
 
   // 通知
   NOTIFICATION_ENABLED: 'notificationEnabled',
+  AI_INSIGHT_NOTIFICATION_ENABLED: 'aiInsightNotificationEnabled',
   NOTIFICATION_POSITION: 'notificationPosition',
   NOTIFICATION_FILTER_MODE: 'notificationFilterMode',
   NOTIFICATION_FILTER_LIST: 'notificationFilterList',
@@ -197,10 +198,35 @@ export async function setDbPath(path: string): Promise<void> {
   await config.set(CONFIG_KEYS.DB_PATH, path)
 }
 
-// 获取当前用户 wxid
+// 清洗账号目录名称（移除后缀）
+function cleanAccountDirName(dirName: string): string {
+  const trimmed = dirName.trim()
+  if (!trimmed) return trimmed
+
+  // wxid_ 开头的特殊处理
+  if (trimmed.toLowerCase().startsWith('wxid_')) {
+    const match = trimmed.match(/^(wxid_[^_]+)/i)
+    if (match) return match[1]
+    return trimmed
+  }
+
+  // 移除4位后缀
+  const suffixMatch = trimmed.match(/^(.+)_([a-zA-Z0-9]{4})$/)
+  if (suffixMatch) return suffixMatch[1]
+
+  return trimmed
+}
+
+// 获取当前用户 wxid（原始值，可能带后缀）
 export async function getMyWxid(): Promise<string | null> {
   const value = await config.get(CONFIG_KEYS.MY_WXID)
   return value as string | null
+}
+
+// 获取当前用户 wxid（清洗后，不带后缀）
+export async function getMyWxidCleaned(): Promise<string | null> {
+  const value = await getMyWxid()
+  return value ? cleanAccountDirName(value) : null
 }
 
 // 设置当前用户 wxid
@@ -1677,6 +1703,15 @@ export async function setNotificationEnabled(enabled: boolean): Promise<void> {
   await config.set(CONFIG_KEYS.NOTIFICATION_ENABLED, enabled)
 }
 
+export async function getAiInsightNotificationEnabled(): Promise<boolean> {
+  const value = await config.get(CONFIG_KEYS.AI_INSIGHT_NOTIFICATION_ENABLED)
+  return value !== false
+}
+
+export async function setAiInsightNotificationEnabled(enabled: boolean): Promise<void> {
+  await config.set(CONFIG_KEYS.AI_INSIGHT_NOTIFICATION_ENABLED, enabled)
+}
+
 // 获取通知位置
 export async function getNotificationPosition(): Promise<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'> {
   const value = await config.get(CONFIG_KEYS.NOTIFICATION_POSITION)
@@ -1868,13 +1903,13 @@ export async function getAiModelApiMaxTokens(): Promise<number> {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
     return Math.floor(value)
   }
-  return 200
+  return 1024
 }
 
 export async function setAiModelApiMaxTokens(maxTokens: number): Promise<void> {
   const normalized = Number.isFinite(maxTokens)
-    ? Math.min(65535, Math.max(1, Math.floor(maxTokens)))
-    : 200
+    ? Math.min(2000000, Math.max(1, Math.floor(maxTokens)))
+    : 1024
   await config.set(CONFIG_KEYS.AI_MODEL_API_MAX_TOKENS, normalized)
 }
 

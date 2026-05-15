@@ -31,6 +31,7 @@ import { destroyNotificationWindow, registerNotificationHandlers, showNotificati
 import { httpService } from './services/httpService'
 import { messagePushService } from './services/messagePushService'
 import { insightService } from './services/insightService'
+import { insightRecordService } from './services/insightRecordService'
 import { normalizeWeiboCookieInput, weiboService } from './services/social/weiboService'
 import { bizService } from './services/bizService'
 import { backupService } from './services/backupService'
@@ -734,14 +735,41 @@ const focusMainWindowAndNavigate = (sessionId: string): void => {
   targetWindow.webContents.send('navigate-to-session', sessionId)
 }
 
+const focusMainWindowAndNavigateRoute = (route: string): void => {
+  const targetWindow = mainWindow
+  if (!targetWindow || targetWindow.isDestroyed()) return
+  if (targetWindow.isMinimized()) targetWindow.restore()
+  targetWindow.show()
+  targetWindow.focus()
+  targetWindow.webContents.send('navigate-to-route', route)
+}
+
+const handleNotificationClickNavigation = (payload: unknown): void => {
+  if (payload && typeof payload === 'object') {
+    const data = payload as { sessionId?: string; channel?: string; insightRecordId?: string; targetRoute?: string }
+    const targetRoute = String(data.targetRoute || '').trim()
+    if (targetRoute.startsWith('/')) {
+      focusMainWindowAndNavigateRoute(targetRoute)
+      return
+    }
+    if (data.channel === 'ai-insight' && data.insightRecordId) {
+      focusMainWindowAndNavigateRoute(`/insight-inbox?recordId=${encodeURIComponent(String(data.insightRecordId))}`)
+      return
+    }
+    focusMainWindowAndNavigate(String(data.sessionId || ''))
+    return
+  }
+  focusMainWindowAndNavigate(String(payload || ''))
+}
+
 const ensureNotificationNavigateHandlerRegistered = (): void => {
   if (notificationNavigateHandlerRegistered) return
   notificationNavigateHandlerRegistered = true
-  ipcMain.on('notification-clicked', (_event, sessionId) => {
-    focusMainWindowAndNavigate(String(sessionId || ''))
+  ipcMain.on('notification-clicked', (_event, payload) => {
+    handleNotificationClickNavigation(payload)
   })
-  setNotificationNavigateHandler((sessionId: string) => {
-    focusMainWindowAndNavigate(String(sessionId || ''))
+  setNotificationNavigateHandler((payload: unknown) => {
+    handleNotificationClickNavigation(payload)
   })
 }
 
@@ -973,6 +1001,8 @@ function createAgreementWindow() {
  */
 function createSplashWindow(): BrowserWindow {
   const isDev = !!process.env.VITE_DEV_SERVER_URL
+  const splashThemeId = configService?.get('themeId') || 'cloud-dancer'
+  const splashThemeMode = configService?.get('theme') || 'system'
   const iconPath = isDev
     ? join(__dirname, '../public/icon.ico')
     : (process.platform === 'darwin' 
@@ -980,7 +1010,7 @@ function createSplashWindow(): BrowserWindow {
         : join(process.resourcesPath, 'icon.ico'))
 
   splashWindow = new BrowserWindow({
-    width: 760,
+    width: 680,
     height: 460,
     resizable: false,
     frame: false,
@@ -999,9 +1029,17 @@ function createSplashWindow(): BrowserWindow {
   })
 
   if (isDev) {
-    splashWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}splash.html`)
+    const splashUrl = new URL('splash.html', process.env.VITE_DEV_SERVER_URL)
+    splashUrl.searchParams.set('themeId', splashThemeId)
+    splashUrl.searchParams.set('themeMode', splashThemeMode)
+    splashWindow.loadURL(splashUrl.toString())
   } else {
-    splashWindow.loadFile(join(__dirname, '../dist/splash.html'))
+    splashWindow.loadFile(join(__dirname, '../dist/splash.html'), {
+      query: {
+        themeId: splashThemeId,
+        themeMode: splashThemeMode
+      }
+    })
   }
 
   splashWindow.once('ready-to-show', () => {
@@ -1281,9 +1319,6 @@ function createChatHistoryRouteWindow(route: string) {
         ? join(process.resourcesPath, 'icon.icns')
         : join(process.resourcesPath, 'icon.ico'))
 
-  // 根据系统主题设置窗口背景色
-  const isDark = nativeTheme.shouldUseDarkColors
-
   const win = new BrowserWindow({
     width: 600,
     height: 800,
@@ -1298,13 +1333,31 @@ function createChatHistoryRouteWindow(route: string) {
     titleBarStyle: 'hidden',
     titleBarOverlay: false,
     show: false,
-    backgroundColor: isDark ? '#1A1A1A' : '#F0F0F0',
+    backgroundColor: '#FFFFFF',
     autoHideMenuBar: true
   })
   setupCustomTitleBarWindow(win)
 
-  win.once('ready-to-show', () => {
+  let hasShown = false
+  let isReadyToShow = false
+  let hasLoadedRoute = false
+  const showChatHistoryWindow = () => {
+    if (hasShown || !isReadyToShow || !hasLoadedRoute || win.isDestroyed()) return
+    hasShown = true
     win.show()
+  }
+
+  win.webContents.once('did-finish-load', () => {
+    hasLoadedRoute = true
+    setTimeout(showChatHistoryWindow, 30)
+  })
+  win.webContents.once('did-fail-load', () => {
+    hasLoadedRoute = true
+    showChatHistoryWindow()
+  })
+  win.once('ready-to-show', () => {
+    isReadyToShow = true
+    showChatHistoryWindow()
   })
 
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -1732,6 +1785,33 @@ function registerIpcHandlers() {
 
   ipcMain.handle('insight:getTodayStats', async () => {
     return insightService.getTodayStats()
+  })
+
+  ipcMain.handle('insight:listRecords', async (_, filters?: {
+    keyword?: string
+    sessionId?: string
+    startTime?: number
+    endTime?: number
+    limit?: number
+    offset?: number
+  }) => {
+    return insightRecordService.listRecords(filters || {})
+  })
+
+  ipcMain.handle('insight:getRecord', async (_, id: string) => {
+    return insightRecordService.getRecord(id)
+  })
+
+  ipcMain.handle('insight:markRecordRead', async (_, id: string) => {
+    return insightRecordService.markRecordRead(id)
+  })
+
+  ipcMain.handle('insight:clearRecords', async (_, filters?: {
+    sessionId?: string
+    startTime?: number
+    endTime?: number
+  }) => {
+    return insightRecordService.clearRecords(filters || {})
   })
 
   ipcMain.handle('insight:triggerTest', async () => {
@@ -2208,11 +2288,21 @@ function registerIpcHandlers() {
 
   // WCDB 数据库相关
   ipcMain.handle('wcdb:testConnection', async (_, dbPath: string, hexKey: string, wxid: string) => {
-    return wcdbService.testConnection(dbPath, hexKey, wxid)
+    const cfg = configService || new ConfigService()
+    const accountDir = cfg.getAccountDir(dbPath, wxid)
+    if (!accountDir) {
+      return { success: false, error: '未找到账号目录' }
+    }
+    return wcdbService.testConnection(accountDir, hexKey)
   })
 
   ipcMain.handle('wcdb:open', async (_, dbPath: string, hexKey: string, wxid: string) => {
-    return wcdbService.open(dbPath, hexKey, wxid)
+    const cfg = configService || new ConfigService()
+    const accountDir = cfg.getAccountDir(dbPath, wxid)
+    if (!accountDir) {
+      return false
+    }
+    return wcdbService.open(accountDir, hexKey)
   })
 
   ipcMain.handle('wcdb:close', async () => {
@@ -2241,6 +2331,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('chat:getSessions', async () => {
     return chatService.getSessions()
+  })
+
+  ipcMain.handle('chat:markAllSessionsRead', async () => {
+    return chatService.markAllSessionsRead()
   })
 
   ipcMain.handle('chat:getSessionStatuses', async (_, usernames: string[]) => {
@@ -2346,7 +2440,7 @@ function registerIpcHandlers() {
       return { success: false, error: '请至少选择一项清理范围' }
     }
 
-    const rawWxid = String(cfg.get('myWxid') || '').trim()
+    const rawWxid = String(cfg.getMyWxidCleaned() || '').trim()
     if (!rawWxid) {
       return { success: false, error: '当前账号未登录或未识别，无法清理' }
     }
@@ -3096,7 +3190,7 @@ function registerIpcHandlers() {
     const logEnabled = cfg.get('logEnabled')
     const dbPath = String(cfg.get('dbPath') || '').trim()
     const decryptKey = String(cfg.get('decryptKey') || '').trim()
-    const myWxid = String(cfg.get('myWxid') || '').trim()
+    const myWxid = String(cfg.getMyWxidCleaned() || '').trim()
     const imageKeys = cfg.getImageKeysForCurrentWxid()
     const resourcesPath = app.isPackaged
       ? join(process.resourcesPath, 'resources')
@@ -3245,7 +3339,7 @@ function registerIpcHandlers() {
             options,
             dbPath: String(cfg.get('dbPath') || '').trim(),
             decryptKey: String(cfg.get('decryptKey') || '').trim(),
-            myWxid: String(cfg.get('myWxid') || '').trim(),
+            myWxid: String(cfg.getMyWxidCleaned() || '').trim(),
             imageXorKey: imageKeys.xorKey,
             imageAesKey: imageKeys.aesKey,
             resourcesPath: app.isPackaged ? join(process.resourcesPath, 'resources') : join(app.getAppPath(), 'resources'),
@@ -3314,7 +3408,7 @@ function registerIpcHandlers() {
             options,
             dbPath: String(cfg.get('dbPath') || '').trim(),
             decryptKey: String(cfg.get('decryptKey') || '').trim(),
-            myWxid: String(cfg.get('myWxid') || '').trim(),
+            myWxid: String(cfg.getMyWxidCleaned() || '').trim(),
             resourcesPath: app.isPackaged ? join(process.resourcesPath, 'resources') : join(app.getAppPath(), 'resources'),
             userDataPath: app.getPath('userData'),
             logEnabled: cfg.get('logEnabled')
@@ -3547,7 +3641,7 @@ function registerIpcHandlers() {
     return annualReportService.getAvailableYears({
       dbPath: cfg.get('dbPath'),
       decryptKey: cfg.get('decryptKey'),
-      wxid: cfg.get('myWxid')
+      wxid: cfg.getMyWxidCleaned()
     })
   })
 
@@ -3744,7 +3838,7 @@ function registerIpcHandlers() {
 
     const dbPath = cfg.get('dbPath')
     const decryptKey = cfg.get('decryptKey')
-    const wxid = cfg.get('myWxid')
+    const wxid = cfg.getMyWxidCleaned()
     const logEnabled = cfg.get('logEnabled')
 
     const resourcesPath = app.isPackaged
@@ -3805,7 +3899,7 @@ function registerIpcHandlers() {
 
     const dbPath = cfg.get('dbPath')
     const decryptKey = cfg.get('decryptKey')
-    const wxid = cfg.get('myWxid')
+    const wxid = cfg.getMyWxidCleaned()
     const logEnabled = cfg.get('logEnabled')
     const friendUsername = payload?.friendUsername
     const year = payload?.year ?? 0
